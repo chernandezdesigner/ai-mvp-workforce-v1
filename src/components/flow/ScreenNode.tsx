@@ -15,7 +15,8 @@ import {
   Settings, 
   Home,
   UserPlus,
-  AlertCircle
+  AlertCircle,
+  MoreHorizontal
 } from 'lucide-react';
 
 interface ScreenNodeData {
@@ -23,6 +24,12 @@ interface ScreenNodeData {
   description?: string;
   screenType?: ScreenType;
   requiresAuth?: boolean;
+}
+
+interface ScreenNodeProps {
+  data: ScreenNodeData;
+  selected?: boolean;
+  onContextMenu?: (event: React.MouseEvent) => void;
 }
 
 const getScreenIcon = (type?: ScreenType) => {
@@ -77,20 +84,52 @@ const getScreenColor = (type?: ScreenType) => {
   }
 };
 
-export default function ScreenNode({ data }: NodeProps<ScreenNodeData>) {
+export default function ScreenNode({ data, selected }: NodeProps<ScreenNodeData>) {
+  const handleMenuClick = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Create a synthetic context menu event
+    const syntheticEvent = {
+      ...event,
+      button: 2, // Right click
+      type: 'contextmenu'
+    } as React.MouseEvent;
+    
+    // Find the node element and dispatch context menu event
+    const nodeElement = event.currentTarget.closest('[data-id]');
+    if (nodeElement) {
+      const contextMenuEvent = new MouseEvent('contextmenu', {
+        bubbles: true,
+        cancelable: true,
+        clientX: event.clientX,
+        clientY: event.clientY
+      });
+      nodeElement.dispatchEvent(contextMenuEvent);
+    }
+  };
   return (
-    <div className="min-w-[220px] max-w-[280px]">
+    <div className="min-w-[220px] max-w-[280px] group">
       <Handle 
         type="target" 
         position={Position.Left} 
         className="w-2 h-2 bg-gray-500 border-2 border-white shadow-sm" 
       />
       
-      <Card className={`${getScreenColor(data.screenType)} shadow-sm hover:shadow-md transition-all duration-200`}>
+      <Card className={`${getScreenColor(data.screenType)} shadow-sm hover:shadow-md transition-all duration-200 ${
+        selected ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+      }`}>
         <CardHeader className="pb-3 px-4 pt-4">
           <CardTitle className="text-sm font-medium flex items-center gap-2 text-gray-900">
             <span className="text-gray-600">{getScreenIcon(data.screenType)}</span>
-            <span className="truncate">{data.label}</span>
+            <span className="truncate flex-1">{data.label}</span>
+            <button 
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
+              onClick={handleMenuClick}
+              title="More options"
+            >
+              <MoreHorizontal className="w-3 h-3 text-gray-400" />
+            </button>
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 px-4 pb-4">

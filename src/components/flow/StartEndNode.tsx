@@ -9,11 +9,11 @@ interface StartEndNodeData {
   isStart?: boolean;
 }
 
-export default function StartEndNode({ data }: NodeProps<StartEndNodeData>) {
+export default function StartEndNode({ data, selected }: NodeProps<StartEndNodeData>) {
   const isStart = data.isStart ?? data.label.toLowerCase().includes('start');
   
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center group">
       {!isStart && (
         <Handle 
           type="target" 
@@ -28,6 +28,7 @@ export default function StartEndNode({ data }: NodeProps<StartEndNodeData>) {
           ? 'bg-black border-2 border-gray-300' 
           : 'bg-gray-100 border-2 border-gray-300'
         }
+        ${selected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}
       `}>
         {isStart ? (
           <Play className="w-5 h-5 text-white ml-0.5" fill="currentColor" />

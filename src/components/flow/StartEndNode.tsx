@@ -17,32 +17,28 @@ export default function StartEndNode({ data }: NodeProps<StartEndNodeData>) {
       {!isStart && (
         <Handle 
           type="target" 
-          position={Position.Top} 
-          className="w-3 h-3 bg-gray-400 border-2 border-white shadow-sm" 
+          position={Position.Left} 
+          className="w-2 h-2 bg-gray-500 border-2 border-white shadow-sm" 
         />
       )}
       
       <div className={`
-        w-20 h-20 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105
+        w-16 h-16 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-200
         ${isStart 
-          ? 'bg-gradient-to-br from-green-100 to-green-200 border-3 border-green-400' 
-          : 'bg-gradient-to-br from-red-100 to-red-200 border-3 border-red-400'
+          ? 'bg-black border-2 border-gray-300' 
+          : 'bg-gray-100 border-2 border-gray-300'
         }
       `}>
         {isStart ? (
-          <Play className="w-7 h-7 text-green-700 ml-0.5" fill="currentColor" />
+          <Play className="w-5 h-5 text-white ml-0.5" fill="currentColor" />
         ) : (
-          <Square className="w-7 h-7 text-red-700" fill="currentColor" />
+          <Square className="w-5 h-5 text-gray-600" fill="currentColor" />
         )}
       </div>
       
       <Badge 
         variant="secondary" 
-        className={`mt-3 text-xs font-medium px-3 py-1 ${
-          isStart 
-            ? 'bg-green-100 text-green-800 border-green-200' 
-            : 'bg-red-100 text-red-800 border-red-200'
-        }`}
+        className="mt-3 text-xs font-normal px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200"
       >
         {data.label}
       </Badge>
@@ -50,8 +46,8 @@ export default function StartEndNode({ data }: NodeProps<StartEndNodeData>) {
       {isStart && (
         <Handle 
           type="source" 
-          position={Position.Bottom} 
-          className="w-3 h-3 bg-gray-400 border-2 border-white shadow-sm" 
+          position={Position.Right} 
+          className="w-2 h-2 bg-gray-500 border-2 border-white shadow-sm" 
         />
       )}
     </div>

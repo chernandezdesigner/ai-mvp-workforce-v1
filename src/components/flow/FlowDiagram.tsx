@@ -42,11 +42,11 @@ const defaultEdgeOptions = {
     type: MarkerType.ArrowClosed,
     width: 20,
     height: 20,
-    color: '#6366f1',
+    color: '#374151',
   },
   style: {
-    strokeWidth: 3,
-    stroke: '#6366f1',
+    strokeWidth: 2,
+    stroke: '#374151',
     strokeDasharray: '0',
   },
 };
@@ -72,11 +72,11 @@ export default function FlowDiagram({
           type: MarkerType.ArrowClosed,
           width: 20,
           height: 20,
-          color: '#6366f1',
+          color: '#374151',
         },
         style: {
-          strokeWidth: 3,
-          stroke: '#6366f1',
+          strokeWidth: 2,
+          stroke: '#374151',
         },
         labelStyle: {
           fontSize: 11,
@@ -140,7 +140,7 @@ export default function FlowDiagram({
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
-        connectionLineStyle={{ strokeWidth: 3, stroke: '#6366f1' }}
+        connectionLineStyle={{ strokeWidth: 2, stroke: '#374151' }}
         connectionLineType="smoothstep"
         fitView={false}
         fitViewOptions={{ padding: 0.3, maxZoom: 0.8, minZoom: 0.1 }}
@@ -158,23 +158,23 @@ export default function FlowDiagram({
       >
         <Background 
           variant={BackgroundVariant.Dots} 
-          gap={24} 
-          size={1.5} 
-          color="#e5e7eb" 
+          gap={20} 
+          size={1} 
+          color="#d1d5db" 
           className="bg-gray-50"
         />
         <Controls 
           showZoom={true}
           showFitView={true}
           showInteractive={editable}
-          className="bg-white border border-gray-200 rounded-lg shadow-md"
+          className="bg-white border border-gray-200 rounded-lg shadow-sm"
         />
         <MiniMap 
-          nodeColor="#f3f4f6"
+          nodeColor="#f9fafb"
           nodeStrokeColor="#d1d5db"
-          nodeStrokeWidth={2}
-          maskColor="rgba(0, 0, 0, 0.05)"
-          className="bg-white border border-gray-200 rounded-lg shadow-md"
+          nodeStrokeWidth={1}
+          maskColor="rgba(0, 0, 0, 0.03)"
+          className="bg-white border border-gray-200 rounded-lg shadow-sm"
           style={{
             backgroundColor: 'white',
           }}

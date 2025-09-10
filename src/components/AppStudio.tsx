@@ -28,14 +28,23 @@ import {
 } from 'lucide-react';
 
 import FlowDiagram from './flow/FlowDiagram';
+import ThinkingDialogue from './ui/thinking-dialogue';
 import { AIFlowGenerator } from '@/lib/ai-flow-generator';
 import { AppArchitecture, AppFlow } from '@/types/app-architecture';
 
 interface ChatMessage {
   id: string;
-  type: 'user' | 'assistant';
+  type: 'user' | 'assistant' | 'thinking';
   content: string;
   timestamp: Date;
+  isThinking?: boolean;
+  thinkingSteps?: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'error';
+  }>;
+  currentThought?: string;
 }
 
 export default function AppStudio() {
@@ -71,19 +80,86 @@ export default function AppStudio() {
     };
     setChatMessages(prev => [...prev, userMessage]);
     
-    // Add loading assistant message
-    const loadingMessage: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      type: 'assistant',
-      content: 'Generating your app architecture...',
-      timestamp: new Date()
+    // Add initial thinking message
+    const thinkingMessageId = (Date.now() + 1).toString();
+    const initialThinkingMessage: ChatMessage = {
+      id: thinkingMessageId,
+      type: 'thinking',
+      content: 'AI is thinking...',
+      timestamp: new Date(),
+      isThinking: true,
+      thinkingSteps: [],
+      currentThought: 'Let me think about your request...'
     };
-    setChatMessages(prev => [...prev, loadingMessage]);
+    setChatMessages(prev => [...prev, initialThinkingMessage]);
     
     setIsGenerating(true);
     setIsProjectMode(true);
     
     try {
+      // Get real AI thinking process
+      const thinkingResponse = await fetch('/api/ai-thinking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userRequest: prompt }),
+      });
+
+      if (!thinkingResponse.ok) {
+        throw new Error('Failed to get AI thinking');
+      }
+
+      const { steps, thoughts } = await thinkingResponse.json();
+      
+      // Update message with real thinking steps
+      setChatMessages(prev => 
+        prev.map(msg => 
+          msg.id === thinkingMessageId 
+            ? {
+                ...msg,
+                thinkingSteps: steps.map((step: any) => ({ ...step, status: 'pending' })),
+                currentThought: thoughts[0] || 'Analyzing your request...'
+              }
+            : msg
+        )
+      );
+
+      // Process each thinking step with real thoughts
+      for (let i = 0; i < steps.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 1200)); // Give time to read each thought
+        
+        setChatMessages(prev => 
+          prev.map(msg => 
+            msg.id === thinkingMessageId 
+              ? {
+                  ...msg,
+                  currentThought: steps[i].thought,
+                  thinkingSteps: msg.thinkingSteps?.map((step, index) => ({
+                    ...step,
+                    status: index < i ? 'completed' : index === i ? 'in_progress' : 'pending'
+                  }))
+                }
+              : msg
+          )
+        );
+      }
+      
+      // Complete all steps and show final thought
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setChatMessages(prev => 
+        prev.map(msg => 
+          msg.id === thinkingMessageId 
+            ? {
+                ...msg,
+                currentThought: thoughts[thoughts.length - 1] || 'Ready to generate your user flows!',
+                thinkingSteps: msg.thinkingSteps?.map(step => ({ ...step, status: 'completed' as const }))
+              }
+            : msg
+        )
+      );
+
+      // Generate the architecture
       const response = await fetch('/api/generate-architecture', {
         method: 'POST',
         headers: {
@@ -102,21 +178,38 @@ export default function AppStudio() {
       setArchitecture(newArchitecture);
       setFlow(newFlow);
       
-      // Update the loading message with success
+      // Replace thinking message with success message
       setChatMessages(prev => 
         prev.map(msg => 
-          msg.id === loadingMessage.id 
-            ? { ...msg, content: `✅ Generated architecture for "${newArchitecture.name}" with ${newArchitecture.screens.length} screens and ${newArchitecture.apiEndpoints.length} API endpoints.` }
+          msg.id === thinkingMessageId 
+            ? { 
+                ...msg, 
+                type: 'assistant',
+                content: `✅ Generated user flows for your ${newArchitecture.name.toLowerCase()}. The flow diagram shows your complete user journey and is ready for review and editing.`,
+                isThinking: false,
+                currentThought: undefined,
+                thinkingSteps: undefined
+              }
             : msg
         )
       );
     } catch (error) {
       console.error('Failed to generate architecture:', error);
-      // Update loading message with error
+      // Update thinking message with error
       setChatMessages(prev => 
         prev.map(msg => 
-          msg.id === loadingMessage.id 
-            ? { ...msg, content: '❌ Failed to generate architecture. Please try again.' }
+          msg.id === thinkingMessageId 
+            ? { 
+                ...msg, 
+                type: 'assistant',
+                content: '❌ Failed to generate user flows. Please try again.',
+                isThinking: false,
+                currentThought: undefined,
+                thinkingSteps: msg.thinkingSteps?.map(step => ({ 
+                  ...step, 
+                  status: step.status === 'in_progress' ? 'error' : step.status 
+                }))
+              }
             : msg
         )
       );
@@ -132,7 +225,7 @@ export default function AppStudio() {
       // First message - generate architecture
       await handleGenerate(currentMessage);
     } else {
-      // Subsequent messages - just add to chat for now
+      // Subsequent messages - show real thinking for modifications
       const userMessage: ChatMessage = {
         id: Date.now().toString(),
         type: 'user',
@@ -141,14 +234,107 @@ export default function AppStudio() {
       };
       setChatMessages(prev => [...prev, userMessage]);
       
-      // Add a simple response for now
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        content: 'I can help you modify the architecture. What would you like to change?',
-        timestamp: new Date()
+      setIsGenerating(true);
+      
+      // Add initial thinking message for modifications
+      const thinkingMessageId = (Date.now() + 1).toString();
+      const initialThinkingMessage: ChatMessage = {
+        id: thinkingMessageId,
+        type: 'thinking',
+        content: 'AI is analyzing your request...',
+        timestamp: new Date(),
+        isThinking: true,
+        thinkingSteps: [],
+        currentThought: 'Let me think about your modification request...'
       };
-      setChatMessages(prev => [...prev, assistantMessage]);
+      setChatMessages(prev => [...prev, initialThinkingMessage]);
+      
+      try {
+        // Get real AI thinking for modifications
+        const modificationContext = `User wants to modify their existing app architecture. Their original request created a ${architecture?.name || 'app'}, and now they're asking: "${currentMessage}"`;
+        
+        const thinkingResponse = await fetch('/api/ai-thinking', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userRequest: modificationContext }),
+        });
+
+        if (thinkingResponse.ok) {
+          const { steps, thoughts } = await thinkingResponse.json();
+          
+          // Update with real thinking steps
+          setChatMessages(prev => 
+            prev.map(msg => 
+              msg.id === thinkingMessageId 
+                ? {
+                    ...msg,
+                    thinkingSteps: steps.map((step: any) => ({ ...step, status: 'pending' })),
+                    currentThought: thoughts[0] || 'Analyzing your modification request...'
+                  }
+                : msg
+            )
+          );
+
+          // Process each step with real thoughts
+          for (let i = 0; i < steps.length; i++) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            setChatMessages(prev => 
+              prev.map(msg => 
+                msg.id === thinkingMessageId 
+                  ? {
+                      ...msg,
+                      currentThought: steps[i].thought,
+                      thinkingSteps: msg.thinkingSteps?.map((step, index) => ({
+                        ...step,
+                        status: index < i ? 'completed' : index === i ? 'in_progress' : 'pending'
+                      }))
+                    }
+                  : msg
+              )
+            );
+          }
+          
+          // Complete and respond
+          await new Promise(resolve => setTimeout(resolve, 600));
+          setChatMessages(prev => 
+            prev.map(msg => 
+              msg.id === thinkingMessageId 
+                ? { 
+                    ...msg, 
+                    type: 'assistant',
+                    content: 'I understand your request for modifications. Currently, the flow generation system is working well. In future updates, I\'ll be able to make real-time changes to your user flows based on your feedback. For now, you can manually edit the diagram or generate a new flow with updated requirements.',
+                    isThinking: false,
+                    currentThought: undefined,
+                    thinkingSteps: undefined
+                  }
+                : msg
+            )
+          );
+        } else {
+          throw new Error('Failed to get thinking response');
+        }
+        
+      } catch (error) {
+        setChatMessages(prev => 
+          prev.map(msg => 
+            msg.id === thinkingMessageId 
+              ? { 
+                  ...msg, 
+                  type: 'assistant',
+                  content: 'I can help you modify the user flows. Currently, the flow generation is working well. In future updates, I\'ll be able to make real-time changes to your diagram based on your feedback.',
+                  isThinking: false,
+                  currentThought: undefined,
+                  thinkingSteps: undefined
+                }
+              : msg
+          )
+        );
+      } finally {
+        setIsGenerating(false);
+      }
     }
     
     setCurrentMessage('');
@@ -208,98 +394,64 @@ export default function AppStudio() {
   }, [architecture]);
 
   const exampleGoals = [
-    "Build a todo app with login and dashboard",
-    "Create a social media platform with posts and profiles",
-    "Design an e-commerce store with products and checkout",
-    "Build a blog platform with content management",
-    "Create a project management tool with teams and tasks"
+    "Todo app with authentication",
+    "Social media with user profiles", 
+    "E-commerce with shopping cart",
+    "Blog with content management"
   ];
 
   // Landing page when not in project mode
   if (!isProjectMode) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        <div className="max-w-4xl mx-auto px-4 py-12 space-y-8">
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-16 space-y-8 sm:space-y-12">
           {/* Header */}
-          <div className="text-center space-y-4">
+          <div className="text-center space-y-4 sm:space-y-6">
             <div className="flex items-center justify-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl text-white">
-                <Sparkles className="w-8 h-8" />
+              <div className="p-2 bg-black rounded-lg text-white">
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">
                 AI App Studio
               </h1>
             </div>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Describe your app idea and watch it transform into a structured architecture with visual flow diagrams.
+            <p className="text-base sm:text-lg text-gray-600 max-w-xl mx-auto leading-relaxed px-4">
+              Transform your app idea into a structured architecture with visual flow diagrams. then wireframes. then code. in one place
             </p>
           </div>
 
-          {/* Goal Input Section */}
-          <Card className="shadow-lg border-0 bg-white/70 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wand2 className="w-5 h-5" />
-                Describe Your App
-              </CardTitle>
-              <CardDescription>
-                Tell us what you want to build. Be as detailed or as simple as you like.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="relative">
-                <Textarea
-                  placeholder="e.g., Build a todo app with user authentication, dashboard, task management, and settings..."
-                  value={goal}
-                  onChange={(e) => setGoal(e.target.value)}
-                  className="min-h-[120px] resize-none text-base pr-12"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      if (goal.trim()) {
-                        handleGenerate(goal);
-                      }
+            
+            <div className="relative">
+              <Textarea
+                placeholder="Build a todo app with user authentication and task management"
+                value={goal}
+                onChange={(e) => setGoal(e.target.value)}
+                className="min-h-[120px] resize-none text-base border-gray-200 focus:border-gray-400 focus:ring-0 rounded-lg pr-12 bg-white shadow-sm"
+                aria-label="Describe your app idea"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (goal.trim()) {
+                      handleGenerate(goal);
                     }
-                  }}
-                />
-                <Button
-                  onClick={() => handleGenerate(goal)}
-                  disabled={!goal.trim() || isGenerating}
-                  size="sm"
-                  className="absolute bottom-3 right-3 h-8 w-8 p-0"
-                >
-                  {isGenerating ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-              
-              <div className="flex flex-wrap gap-2">
-                <span className="text-sm text-muted-foreground">Try these examples:</span>
-                {exampleGoals.map((example, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-7"
-                    onClick={() => setGoal(example)}
-                  >
-                    {example}
-                  </Button>
-                ))}
-              </div>
+                  }
+                }}
+              />
+              <Button
+                onClick={() => handleGenerate(goal)}
+                disabled={!goal.trim() || isGenerating}
+                size="sm"
+                className="absolute bottom-4 right-4 h-8 w-8 p-0 bg-black hover:bg-gray-800 rounded-md"
+                aria-label={isGenerating ? "Generating..." : "Generate architecture"}
+              >
+                {isGenerating ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
 
-              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-                <span>
-                  <strong>Note:</strong> For AI-powered generation, set up your API keys in <code className="bg-amber-100 px-1 rounded">.env.local</code>. 
-                  Without API keys, the app will use smart fallback generation.
-                </span>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     );
@@ -310,20 +462,22 @@ export default function AppStudio() {
     <div className="h-screen flex bg-white overflow-hidden">
       {/* Left Sidebar - Chat Interface */}
       <div 
-        className="flex flex-col border-r border-gray-200 bg-gray-50"
+        className="flex flex-col border-r border-gray-200 bg-white"
         style={{ width: isDiagramFullscreen ? '0px' : `${sidebarWidth}px`, transition: 'width 0.3s ease' }}
+        role="complementary"
+        aria-label="Chat interface"
       >
         {!isDiagramFullscreen && (
           <>
             {/* Sidebar Header */}
-            <div className="p-4 border-b border-gray-200 bg-white">
+            <div className="p-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg text-white">
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 bg-black rounded-md text-white">
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <div>
-                    <h1 className="text-sm font-semibold">AI App Studio</h1>
+                    <h1 className="text-sm font-medium text-gray-900">AI App Studio</h1>
                     {architecture && (
                       <p className="text-xs text-gray-500 truncate">{architecture.name}</p>
                     )}
@@ -334,77 +488,73 @@ export default function AppStudio() {
                     variant="ghost"
                     size="sm"
                     onClick={handleStartOver}
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 hover:bg-gray-100 rounded-md"
                   >
-                    <Home className="w-4 h-4" />
+                    <Home className="w-4 h-4 text-gray-600" />
                   </Button>
                   {architecture && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={handleExportJson}
-                      className="h-8 w-8 p-0"
+                      className="h-8 w-8 p-0 hover:bg-gray-100 rounded-md"
                     >
-                      <Download className="w-4 h-4" />
+                      <Download className="w-4 h-4 text-gray-600" />
                     </Button>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Architecture Stats */}
-            {architecture && (
-              <div className="p-3 border-b border-gray-200 bg-white">
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="text-center p-2 bg-blue-50 rounded">
-                    <div className="font-semibold text-blue-600">{architecture.screens.length}</div>
-                    <div className="text-blue-600">Screens</div>
-                  </div>
-                  <div className="text-center p-2 bg-green-50 rounded">
-                    <div className="font-semibold text-green-600">{architecture.apiEndpoints.length}</div>
-                    <div className="text-green-600">APIs</div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {chatMessages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                      message.type === 'user'
-                        ? 'bg-violet-500 text-white'
-                        : 'bg-white border border-gray-200 text-gray-900'
-                    }`}
-                  >
-                    {message.content}
-                  </div>
+                <div key={message.id}>
+                  {message.type === 'thinking' ? (
+                    <ThinkingDialogue
+                      isThinking={message.isThinking || false}
+                      currentThought={message.currentThought}
+                      steps={message.thinkingSteps || []}
+                    />
+                  ) : (
+                    <div
+                      className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-lg px-4 py-3 text-sm ${
+                          message.type === 'user'
+                            ? 'bg-black text-white'
+                            : 'bg-gray-50 border border-gray-200 text-gray-900'
+                        }`}
+                      >
+                        {message.content}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
               <div ref={messagesEndRef} />
             </div>
 
             {/* Chat Input */}
-            <div className="p-4 border-t border-gray-200 bg-white">
-              <div className="flex gap-2">
+            <div className="p-4 border-t border-gray-200">
+              <div className="flex gap-3">
                 <Input
-                  placeholder="Ask me to modify the architecture..."
+                  placeholder="Describe changes to your architecture..."
                   value={currentMessage}
                   onChange={(e) => setCurrentMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   disabled={isGenerating}
-                  className="flex-1 text-sm"
+                  className="flex-1 text-sm border-gray-200 focus:border-gray-400 focus:ring-0 rounded-lg"
+                  aria-label="Chat input"
                 />
                 <Button
                   onClick={handleSendMessage}
                   disabled={!currentMessage.trim() || isGenerating}
                   size="sm"
-                  className="h-10 w-10 p-0"
+                  className="h-10 w-10 p-0 bg-black hover:bg-gray-800 rounded-lg"
+                  aria-label={isGenerating ? "Sending message..." : "Send message"}
                 >
                   {isGenerating ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
@@ -421,36 +571,37 @@ export default function AppStudio() {
       {/* Resize Handle */}
       {!isDiagramFullscreen && (
         <div
-          className="w-1 bg-gray-200 hover:bg-gray-300 cursor-col-resize transition-colors"
+          className="w-px bg-gray-200 hover:bg-gray-300 cursor-col-resize transition-colors"
           onMouseDown={handleMouseDown}
         />
       )}
 
       {/* Main Content - Diagram */}
-      <div className="flex-1 flex flex-col bg-white overflow-hidden">
+      <div className="flex-1 flex flex-col bg-gray-100 overflow-hidden" role="main" aria-label="Flow diagram">
         {/* Diagram Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsDiagramFullscreen(!isDiagramFullscreen)}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 hover:bg-gray-100 rounded-md"
+              aria-label={isDiagramFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
             >
               {isDiagramFullscreen ? (
-                <Minimize2 className="w-4 h-4" />
+                <Minimize2 className="w-4 h-4 text-gray-600" />
               ) : (
-                <Maximize2 className="w-4 h-4" />
+                <Maximize2 className="w-4 h-4 text-gray-600" />
               )}
             </Button>
             <div className="flex items-center gap-2">
-              <Database className="w-4 h-4 text-gray-600" />
-              <h2 className="font-medium text-gray-900">Visual Flow Diagram</h2>
+              <Database className="w-4 h-4 text-gray-600" aria-hidden="true" />
+              <h2 className="font-medium text-gray-900">Flow Diagram</h2>
             </div>
           </div>
           <div className="flex gap-2">
             {flow && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700 border border-gray-200 rounded-md">
                 {flow.nodes.length} nodes, {flow.edges.length} connections
               </Badge>
             )}
@@ -466,12 +617,12 @@ export default function AppStudio() {
               editable={true}
             />
           ) : (
-            <div className="flex items-center justify-center h-full bg-gray-50">
-              <div className="text-center space-y-3">
-                <div className="p-4 bg-white rounded-full shadow-sm">
-                  <MessageSquare className="w-8 h-8 text-gray-400" />
+            <div className="flex items-center justify-center h-full bg-white">
+              <div className="text-center space-y-4">
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <MessageSquare className="w-8 h-8 text-gray-400 mx-auto" />
                 </div>
-                <p className="text-gray-500 text-sm">Start a conversation to generate your diagram</p>
+                <p className="text-gray-600 text-sm">Start a conversation to generate your flow diagram</p>
               </div>
             </div>
           )}

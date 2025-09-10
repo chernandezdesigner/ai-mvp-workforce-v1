@@ -42,15 +42,15 @@ const getMethodIcon = (method?: HttpMethod) => {
 const getMethodColor = (method?: HttpMethod) => {
   switch (method) {
     case HttpMethod.GET:
-      return 'bg-green-100 text-green-800 border-green-200';
+      return 'bg-gray-100 text-gray-800 border-gray-200';
     case HttpMethod.POST:
-      return 'bg-blue-100 text-blue-800 border-blue-200';
+      return 'bg-gray-100 text-gray-800 border-gray-200';
     case HttpMethod.PUT:
-      return 'bg-orange-100 text-orange-800 border-orange-200';
+      return 'bg-gray-100 text-gray-800 border-gray-200';
     case HttpMethod.DELETE:
       return 'bg-red-100 text-red-800 border-red-200';
     case HttpMethod.PATCH:
-      return 'bg-purple-100 text-purple-800 border-purple-200';
+      return 'bg-gray-100 text-gray-800 border-gray-200';
     default:
       return 'bg-gray-100 text-gray-800 border-gray-200';
   }
@@ -59,17 +59,17 @@ const getMethodColor = (method?: HttpMethod) => {
 const getNodeColor = (method?: HttpMethod) => {
   switch (method) {
     case HttpMethod.GET:
-      return 'border-green-200 bg-green-50';
+      return 'border-gray-300 bg-gray-50';
     case HttpMethod.POST:
-      return 'border-blue-200 bg-blue-50';
+      return 'border-gray-300 bg-gray-50';
     case HttpMethod.PUT:
-      return 'border-orange-200 bg-orange-50';
+      return 'border-gray-300 bg-gray-50';
     case HttpMethod.DELETE:
-      return 'border-red-200 bg-red-50';
+      return 'border-red-300 bg-red-50';
     case HttpMethod.PATCH:
-      return 'border-purple-200 bg-purple-50';
+      return 'border-gray-300 bg-gray-50';
     default:
-      return 'border-slate-200 bg-slate-50';
+      return 'border-gray-300 bg-gray-50';
   }
 };
 
@@ -78,20 +78,20 @@ export default function ApiNode({ data }: NodeProps<ApiNodeData>) {
     <div className="min-w-[240px] max-w-[300px]">
       <Handle 
         type="target" 
-        position={Position.Top} 
-        className="w-3 h-3 bg-gray-400 border-2 border-white shadow-sm" 
+        position={Position.Left} 
+        className="w-2 h-2 bg-gray-500 border-2 border-white shadow-sm" 
       />
       
-      <Card className={`${getNodeColor(data.method)} border-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5`}>
+      <Card className={`${getNodeColor(data.method)} shadow-sm hover:shadow-md transition-all duration-200`}>
         <CardHeader className="pb-3 px-4 pt-4">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2 text-gray-800">
-            {getMethodIcon(data.method)}
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-gray-900">
+            <span className="text-gray-600">{getMethodIcon(data.method)}</span>
             <span className="truncate">{data.label}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 px-4 pb-4 space-y-3">
           {data.path && (
-            <code className="text-xs bg-gray-800 text-gray-100 px-2 py-1.5 rounded font-mono block truncate">
+            <code className="text-xs bg-gray-900 text-gray-100 px-2 py-1.5 rounded font-mono block truncate">
               {data.path}
             </code>
           )}
@@ -102,12 +102,12 @@ export default function ApiNode({ data }: NodeProps<ApiNodeData>) {
           )}
           <div className="flex flex-wrap gap-1.5">
             {data.method && (
-              <Badge className={`text-xs font-medium px-2 py-0.5 ${getMethodColor(data.method)}`}>
+              <Badge className={`text-xs font-normal px-2 py-0.5 ${getMethodColor(data.method)}`}>
                 {data.method}
               </Badge>
             )}
             {data.authentication && (
-              <Badge variant="outline" className="text-xs font-medium px-2 py-0.5 border-amber-200 text-amber-700 bg-amber-50">
+              <Badge variant="outline" className="text-xs font-normal px-2 py-0.5 border-gray-300 text-gray-700">
                 <Lock className="w-3 h-3 mr-1" />
                 Auth
               </Badge>
@@ -118,8 +118,8 @@ export default function ApiNode({ data }: NodeProps<ApiNodeData>) {
 
       <Handle 
         type="source" 
-        position={Position.Bottom} 
-        className="w-3 h-3 bg-gray-400 border-2 border-white shadow-sm" 
+        position={Position.Right} 
+        className="w-2 h-2 bg-gray-500 border-2 border-white shadow-sm" 
       />
     </div>
   );

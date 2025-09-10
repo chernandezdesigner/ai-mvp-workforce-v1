@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI App Studio - Flow Generation Tool
 
-## Getting Started
+An AI-powered app studio where users can describe their app idea and have it turned into a structured architecture with visual flow diagrams. This is the first milestone focusing on flow diagramming and architecture generation.
 
-First, run the development server:
+## ✨ Features
+
+- **Natural Language Input**: Describe your app in plain English
+- **AI-Powered Architecture**: Generate complete app structures with screens, APIs, and transitions
+- **Visual Flow Diagrams**: Interactive React Flow diagrams with custom node types
+- **Multiple AI Providers**: Support for OpenAI, Anthropic Claude, and Google Gemini
+- **JSON Export**: Download structured architecture definitions
+- **Responsive Design**: Modern UI with Shadcn components and Tailwind CSS
+
+## 🚀 Quick Start
+
+### 1. Install Dependencies
+```bash
+npm install
+```
+
+### 2. Set Up AI API Keys
+
+Create a `.env.local` file in the root directory:
+
+```env
+# Choose your preferred AI provider
+AI_PROVIDER=openai
+
+# OpenAI (recommended)
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4o-mini
+
+# OR Anthropic Claude
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+ANTHROPIC_MODEL=claude-3-haiku-20240307
+
+# OR Google Gemini
+GOOGLE_API_KEY=your_google_api_key_here
+GOOGLE_MODEL=gemini-1.5-flash
+```
+
+### 3. Run the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🔑 Getting API Keys
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### OpenAI (Recommended)
+1. Go to [OpenAI API Keys](https://platform.openai.com/api-keys)
+2. Create a new API key
+3. Add it to your `.env.local` as `OPENAI_API_KEY`
 
-## Learn More
+### Anthropic Claude
+1. Go to [Anthropic Console](https://console.anthropic.com/)
+2. Create an API key
+3. Add it to your `.env.local` as `ANTHROPIC_API_KEY`
 
-To learn more about Next.js, take a look at the following resources:
+### Google Gemini
+1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Create an API key
+3. Add it to your `.env.local` as `GOOGLE_API_KEY`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🎯 How It Works
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Describe Your App**: Enter a goal like "Build a todo app with login and dashboard"
+2. **AI Analysis**: The system uses AI to analyze your goal and generate a complete architecture
+3. **Visual Flow**: See your app structure as an interactive flow diagram
+4. **Customize**: Drag nodes around and modify the flow as needed
+5. **Export**: Download the JSON architecture for the next development phases
 
-## Deploy on Vercel
+## 🛠️ Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Framework**: Next.js 15 with TypeScript
+- **UI**: Tailwind CSS + Shadcn/ui components
+- **Flow Diagrams**: React Flow
+- **AI Integration**: OpenAI, Anthropic, Google Gemini APIs
+- **State Management**: React hooks
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📁 Project Structure
+
+```
+src/
+├── components/
+│   ├── flow/           # React Flow components
+│   ├── ui/             # Shadcn UI components
+│   └── AppStudio.tsx   # Main application component
+├── lib/
+│   ├── ai-providers.ts # AI service integrations
+│   └── ai-flow-generator.ts # Architecture generation logic
+└── types/
+    └── app-architecture.ts # TypeScript definitions
+```
+
+## 🔄 Fallback Mode
+
+If AI generation fails (missing API keys, network issues, etc.), the app automatically falls back to a smart keyword-based analysis system, so you can still test the flow generation features.
+
+## 🚧 Future Milestones
+
+This is just the first step! Coming next:
+
+- **UI/UX Design**: Generate wireframes and apply design systems
+- **Frontend Code**: React component generation with Tailwind + Shadcn
+- **Backend Setup**: Supabase integration and API generation  
+- **Export & Deploy**: GitHub sync and deployment options
+
+## 🤝 Contributing
+
+This project is part of a larger AI-powered development workflow. Feel free to contribute improvements to the flow generation and visualization features.
+
+## 📄 License
+
+MIT License - see LICENSE file for details.

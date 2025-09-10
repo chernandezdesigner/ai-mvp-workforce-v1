@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/C:\\Users\\beats\\OneDrive\\Desktop\\Projects\\ai-mvp-workforce-v1/**)",
+      "Read(/C:\\Users\\beats\\OneDrive\\Desktop\\Projects\\ai-mvp-workforce-v1\\src\\lib/**)",
+      "Read(/C:\\Users\\beats\\OneDrive\\Desktop\\Projects\\ai-mvp-workforce-v1\\src\\components/**)",
+      "Read(//c/Users/beats/OneDrive/Pictures/Screenshots 1/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

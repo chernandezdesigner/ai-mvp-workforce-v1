@@ -125,9 +125,18 @@ export default function AppStudio() {
         )
       );
 
-      // Process each thinking step with real thoughts
+      // Start architecture generation in parallel with thinking
+      const architecturePromise = fetch('/api/generate-architecture', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ goal: prompt }),
+      });
+
+      // Process each thinking step with real thoughts - slower pacing
       for (let i = 0; i < steps.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 1200)); // Give time to read each thought
+        await new Promise(resolve => setTimeout(resolve, 2500)); // Slower pacing for better readability
         
         setChatMessages(prev => 
           prev.map(msg => 
@@ -145,28 +154,50 @@ export default function AppStudio() {
         );
       }
       
-      // Complete all steps and show final thought
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Continue thinking while waiting for architecture generation
+      const additionalThoughts = [
+        'Finalizing the screen connections and user flow logic...',
+        'Ensuring the navigation patterns are intuitive and accessible...',
+        'Optimizing the user journey for mobile-first experience...',
+        'Adding error handling and edge cases to the flow...',
+        'Completing the architecture generation...'
+      ];
+
+      let thoughtCounter = 0;
+      const thinkingInterval = setInterval(() => {
+        if (thoughtCounter < additionalThoughts.length) {
+          setChatMessages(prev => 
+            prev.map(msg => 
+              msg.id === thinkingMessageId 
+                ? {
+                    ...msg,
+                    currentThought: additionalThoughts[thoughtCounter]
+                  }
+                : msg
+            )
+          );
+          thoughtCounter++;
+        }
+      }, 3000); // Continue thinking every 3 seconds
+
+      // Wait for architecture generation to complete
+      const response = await architecturePromise;
+      clearInterval(thinkingInterval);
+
+      // Complete all steps
       setChatMessages(prev => 
         prev.map(msg => 
           msg.id === thinkingMessageId 
             ? {
                 ...msg,
-                currentThought: thoughts[thoughts.length - 1] || 'Ready to generate your user flows!',
+                currentThought: 'Architecture complete! Generating your flow diagram...',
                 thinkingSteps: msg.thinkingSteps?.map(step => ({ ...step, status: 'completed' as const }))
               }
             : msg
         )
       );
 
-      // Generate the architecture
-      const response = await fetch('/api/generate-architecture', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ goal: prompt }),
-      });
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Brief pause before completion
 
       if (!response.ok) {
         throw new Error('Failed to generate architecture');
@@ -277,9 +308,9 @@ export default function AppStudio() {
             )
           );
 
-          // Process each step with real thoughts
+          // Process each step with real thoughts - slower for better readability
           for (let i = 0; i < steps.length; i++) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Slower pacing
             
             setChatMessages(prev => 
               prev.map(msg => 
@@ -297,8 +328,28 @@ export default function AppStudio() {
             );
           }
           
+          // Add some final thinking thoughts
+          const finalThoughts = [
+            'Considering the best approach for your modification...',
+            'Thinking about how this fits with your existing flow...'
+          ];
+
+          for (let i = 0; i < finalThoughts.length; i++) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            setChatMessages(prev => 
+              prev.map(msg => 
+                msg.id === thinkingMessageId 
+                  ? {
+                      ...msg,
+                      currentThought: finalThoughts[i]
+                    }
+                  : msg
+              )
+            );
+          }
+          
           // Complete and respond
-          await new Promise(resolve => setTimeout(resolve, 600));
+          await new Promise(resolve => setTimeout(resolve, 1000));
           setChatMessages(prev => 
             prev.map(msg => 
               msg.id === thinkingMessageId 
@@ -423,7 +474,7 @@ export default function AppStudio() {
             
             <div className="relative">
               <Textarea
-                placeholder="Build a todo app with user authentication and task management"
+                placeholder="Describe your app idea... e.g., 'A fitness app where users can track workouts, set goals, and share progress with friends' or 'A recipe app where people can save favorite recipes, create shopping lists, and meal plan' etc."
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
                 className="min-h-[120px] resize-none text-base border-gray-200 focus:border-gray-400 focus:ring-0 rounded-lg pr-12 bg-white shadow-sm"

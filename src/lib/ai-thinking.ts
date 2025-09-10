@@ -65,7 +65,7 @@ Respond with a JSON object in this exact format:
       "id": "optimize",
       "title": "Optimizing UX",
       "description": "Ensuring smooth user experience",
-      "thought": "I should make sure the navigation is intuitive and follows mobile-first principles..."
+      "thought": "I should make sure the navigation is intuitive and follows modern ux principles..."
     }
   ]
 }
@@ -275,7 +275,7 @@ Return ONLY the JSON object, no other text.`;
           id: 'optimize',
           title: 'Optimizing UX',
           description: 'Ensuring smooth user experience',
-          thought: 'I should follow mobile-first principles and make sure the navigation is intuitive.',
+          thought: 'I should follow modern ux principles and make sure the navigation is intuitive.',
           status: 'pending'
         }
       ];

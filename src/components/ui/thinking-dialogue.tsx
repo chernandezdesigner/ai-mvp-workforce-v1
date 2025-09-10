@@ -64,7 +64,7 @@ export default function ThinkingDialogue({
   const [displayedThought, setDisplayedThought] = useState('');
   const [thoughtIndex, setThoughtIndex] = useState(0);
 
-  // Typewriter effect for current thought
+  // Slower typewriter effect for current thought (like Cursor)
   useEffect(() => {
     if (!currentThought || !isThinking) {
       setDisplayedThought('');
@@ -76,7 +76,7 @@ export default function ThinkingDialogue({
       const timeout = setTimeout(() => {
         setDisplayedThought(currentThought.slice(0, thoughtIndex + 1));
         setThoughtIndex(thoughtIndex + 1);
-      }, 20); // Typing speed
+      }, 35); // Slower typing speed for better readability
 
       return () => clearTimeout(timeout);
     }
@@ -95,97 +95,55 @@ export default function ThinkingDialogue({
   }
 
   return (
-    <Card className="border border-gray-200 bg-white shadow-sm">
-      <CardContent className="p-4 space-y-4">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="p-1.5 bg-blue-100 rounded-lg">
-            <Brain className="w-4 h-4 text-blue-600" />
+    <div className="bg-gray-50/80 border border-gray-200/60 rounded-lg backdrop-blur-sm">
+      <div className="p-3 space-y-3">
+        {/* Minimal Header */}
+        <div className="flex items-center gap-2">
+          <div className="p-1 bg-gray-200/60 rounded">
+            <Brain className="w-3 h-3 text-gray-600" />
           </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-medium text-gray-900">AI Thinking</h3>
-            <p className="text-xs text-gray-600">Analyzing your request and planning the architecture</p>
-          </div>
+          <span className="text-xs text-gray-600 font-medium">Thinking...</span>
           {isThinking && (
-            <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
-              Processing...
-            </Badge>
+            <div className="flex space-x-1 ml-auto">
+              <div className="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+              <div className="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '200ms' }} />
+              <div className="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '400ms' }} />
+            </div>
           )}
         </div>
 
-        {/* Current Thought */}
+        {/* Current Thought - Minimal */}
         {isThinking && currentThought && (
-          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-            <div className="flex items-start gap-2">
-              <Lightbulb className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-xs text-gray-600 mb-1">Current thought:</p>
-                <p className="text-sm text-gray-900 leading-relaxed">
-                  {displayedThought}
-                  {thoughtIndex < currentThought.length && (
-                    <span className="inline-block w-0.5 h-4 bg-blue-600 ml-0.5 animate-pulse" />
-                  )}
-                </p>
-              </div>
-            </div>
+          <div className="text-xs text-gray-700 leading-relaxed font-mono bg-white/40 rounded p-2 border border-gray-200/40">
+            {displayedThought}
+            {thoughtIndex < currentThought.length && (
+              <span className="inline-block w-0.5 h-3 bg-gray-500 ml-0.5 animate-pulse" />
+            )}
           </div>
         )}
 
-        {/* Steps */}
+        {/* Minimal Progress Dots */}
         {steps.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-xs font-medium text-gray-700 flex items-center gap-2">
-              <Target className="w-3 h-3" />
-              Progress
-            </h4>
-            <div className="space-y-2">
-              {steps.map((step, index) => (
-                <div key={step.id} className="flex items-center gap-3">
-                  <div className="flex-shrink-0">
-                    {getStepIcon(step.status)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-gray-900 truncate">
-                        {step.title}
-                      </p>
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs ${getStepBadgeColor(step.status)}`}
-                      >
-                        {step.status.replace('_', ' ')}
-                      </Badge>
-                    </div>
-                    {step.description && (
-                      <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                        {step.description}
-                      </p>
-                    )}
-                  </div>
-                  {index < steps.length - 1 && step.status === 'completed' && (
-                    <ArrowRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                  )}
-                </div>
-              ))}
-            </div>
+          <div className="flex items-center gap-2">
+            {steps.map((step, index) => (
+              <div key={step.id} className="flex items-center gap-1">
+                <div className={`w-1.5 h-1.5 rounded-full ${
+                  step.status === 'completed' ? 'bg-green-500' :
+                  step.status === 'in_progress' ? 'bg-blue-500 animate-pulse' :
+                  step.status === 'error' ? 'bg-red-500' :
+                  'bg-gray-300'
+                }`} />
+                {index < steps.length - 1 && (
+                  <div className="w-2 h-px bg-gray-300" />
+                )}
+              </div>
+            ))}
+            <span className="text-xs text-gray-500 ml-2">
+              {steps.filter(s => s.status === 'completed').length}/{steps.length}
+            </span>
           </div>
         )}
-
-        {/* Summary when complete */}
-        {!isThinking && steps.some(s => s.status === 'completed') && (
-          <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-green-600" />
-              <p className="text-sm text-green-800 font-medium">
-                Architecture generated successfully
-              </p>
-            </div>
-            <p className="text-xs text-green-700 mt-1">
-              Your app flow diagram is ready for review and editing.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

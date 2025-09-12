@@ -266,3 +266,176 @@ export interface EnhancedAppMetadata extends AppMetadata {
   uxPrinciples: UXPrinciple[];
   interactionComplexity: InteractionComplexity;
 }
+
+// Wireframe-specific types
+export interface WireframeProject {
+  id: string;
+  name: string;
+  description: string;
+  sourceArchitecture?: AppArchitecture; // Link to flow diagram
+  screens: WireframeScreen[];
+  metadata: WireframeMetadata;
+}
+
+export interface WireframeScreen {
+  id: string;
+  name: string;
+  type: ScreenType;
+  device: DeviceType;
+  description: string;
+  components: WireframeComponent[];
+  layout: LayoutConfig;
+  position?: { x: number; y: number };
+  sourceScreenId?: string; // Link back to flow diagram screen
+}
+
+export interface WireframeComponent {
+  id: string;
+  type: ComponentType;
+  tag: string; // HTML tag (div, header, button, etc.)
+  content?: string;
+  placeholder?: string;
+  styles: ComponentStyles;
+  children: WireframeComponent[];
+  props?: Record<string, any>;
+  interactions?: ComponentInteraction[];
+}
+
+export interface ComponentStyles {
+  display?: string;
+  flexDirection?: string;
+  justifyContent?: string;
+  alignItems?: string;
+  gap?: string;
+  padding?: string;
+  margin?: string;
+  width?: string;
+  height?: string;
+  minHeight?: string;
+  backgroundColor?: string;
+  border?: string;
+  borderRadius?: string;
+  fontSize?: string;
+  fontWeight?: string;
+  color?: string;
+  textAlign?: string;
+  position?: string;
+  top?: string;
+  left?: string;
+  right?: string;
+  bottom?: string;
+  zIndex?: number;
+  [key: string]: any;
+}
+
+export interface ComponentInteraction {
+  trigger: 'click' | 'hover' | 'focus' | 'input' | 'scroll';
+  action: string;
+  target?: string;
+  feedback?: 'visual' | 'haptic' | 'audio';
+}
+
+export interface LayoutConfig {
+  type: 'stack' | 'grid' | 'flex' | 'absolute';
+  direction?: 'row' | 'column';
+  gap?: string;
+  padding?: string;
+  maxWidth?: string;
+  responsive?: boolean;
+}
+
+export interface WireframeMetadata {
+  createdAt: string;
+  updatedAt: string;
+  version: string;
+  device: DeviceType;
+  viewport: ViewportSize;
+  designSystem?: DesignSystemHint;
+}
+
+export enum ComponentType {
+  // Layout Components
+  CONTAINER = 'container',
+  HEADER = 'header',
+  FOOTER = 'footer',
+  SIDEBAR = 'sidebar',
+  MAIN_CONTENT = 'main_content',
+  SECTION = 'section',
+  
+  // Navigation
+  NAVBAR = 'navbar',
+  BREADCRUMB = 'breadcrumb',
+  TABS = 'tabs',
+  PAGINATION = 'pagination',
+  
+  // Content
+  HEADING = 'heading',
+  PARAGRAPH = 'paragraph',
+  LIST = 'list',
+  LIST_ITEM = 'list_item',
+  IMAGE = 'image',
+  VIDEO = 'video',
+  
+  // Forms
+  FORM = 'form',
+  INPUT = 'input',
+  TEXTAREA = 'textarea',
+  SELECT = 'select',
+  CHECKBOX = 'checkbox',
+  RADIO = 'radio',
+  BUTTON = 'button',
+  SUBMIT_BUTTON = 'submit_button',
+  
+  // Data Display
+  TABLE = 'table',
+  CARD = 'card',
+  BADGE = 'badge',
+  AVATAR = 'avatar',
+  PROGRESS_BAR = 'progress_bar',
+  
+  // Feedback
+  ALERT = 'alert',
+  TOAST = 'toast',
+  MODAL = 'modal',
+  LOADING_SPINNER = 'loading_spinner',
+  
+  // Interactive
+  DROPDOWN = 'dropdown',
+  TOOLTIP = 'tooltip',
+  ACCORDION = 'accordion',
+  CAROUSEL = 'carousel'
+}
+
+export enum DeviceType {
+  MOBILE = 'mobile',
+  TABLET = 'tablet', 
+  DESKTOP = 'desktop'
+}
+
+export interface ViewportSize {
+  width: number;
+  height: number;
+}
+
+export enum DesignSystemHint {
+  SHADCN = 'shadcn',
+  MATERIAL = 'material',
+  IOS = 'ios',
+  CUSTOM = 'custom'
+}
+
+// Wireframe Flow types
+export interface WireframeFlow {
+  nodes: WireframeFlowNode[];
+  edges: FlowEdge[];
+}
+
+export interface WireframeFlowNode extends FlowNode {
+  type: 'wireframe_screen';
+  data: {
+    label: string;
+    screen: WireframeScreen;
+    device: DeviceType;
+    [key: string]: any;
+  };
+}

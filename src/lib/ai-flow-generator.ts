@@ -39,10 +39,19 @@ export class AIFlowGenerator {
     const response = await aiService.generateText(prompt);
     
     try {
-      const parsed = JSON.parse(response);
+      // Clean response of markdown code blocks and whitespace
+      const cleanResponse = response
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .replace(/^[\s\n]*/, '')
+        .replace(/[\s\n]*$/, '');
+      
+      console.log('Cleaned AI response:', cleanResponse.substring(0, 200) + '...');
+      const parsed = JSON.parse(cleanResponse);
       return this.validateAndNormalizeArchitecture(parsed, goal);
     } catch (parseError) {
       console.error('Failed to parse AI response:', parseError);
+      console.error('Raw response:', response.substring(0, 500));
       throw new Error('AI returned invalid JSON');
     }
   }
@@ -51,148 +60,126 @@ export class AIFlowGenerator {
    * Build the AI prompt for architecture generation
    */
   private static buildArchitecturePrompt(goal: string): string {
-    return `You are a Senior UX Designer and Information Architect with 10+ years of experience designing mobile and web applications. You understand modern UX principles, user psychology, accessibility standards, and contemporary app design patterns.
+    return `You are Marcus Rodriguez, Lead Product Designer at Stripe with 15+ years designing user flows for apps used by millions. You've designed for DoorDash, Spotify, and Figma. You understand what makes apps truly usable vs just pretty.
 
-USER GOAL: "${goal}"
+USER REQUEST: "${goal}"
 
-DESIGN PHILOSOPHY:
-Apply these core UX principles in your architecture:
-- User-Centered Design: Every screen serves a clear user need
-- Progressive Disclosure: Present information in digestible chunks
-- Cognitive Load Management: Minimize mental effort required
-- Accessibility First: Design for all users from the start
-- Task-Oriented Flow: Optimize for user task completion
-- Error Prevention: Design to prevent user mistakes
-- Feedback & Affordances: Clear visual cues and system feedback
-- Consistency: Predictable patterns across the experience
+METHODOLOGY: Follow the Jobs-to-be-Done framework
+1. IDENTIFY THE JOB: What job is the user "hiring" this app to do?
+2. MAP THE JOURNEY: Complete path from awareness to task completion
+3. DESIGN FOR SUCCESS: Each screen moves user closer to their goal
+4. REMOVE FRICTION: Eliminate unnecessary steps and cognitive load
 
-MOBILE-FIRST APPROACH:
-This is an APP builder, not a website builder. Design native app experiences:
-- Start with app launch (no landing pages)
-- Use mobile-native navigation patterns (tabs, drawers, stacks)
-- Consider touch interactions and mobile contexts
-- Design for one-handed use when possible
-- Include empty states, loading states, and error handling
-- Plan for offline scenarios where relevant
+MOBILE APP ARCHITECTURE PRINCIPLES:
+🎯 FOCUS: One primary action per screen
+📱 MOBILE-FIRST: Thumb-friendly, one-handed use
+⚡ FAST: 2-3 taps to core value
+🧠 SIMPLE: Reduce cognitive load at every step
+🔄 CONNECTED: Every screen has clear entry/exit paths
+♿ ACCESSIBLE: Works for everyone, all abilities
 
-USER JOURNEY ANALYSIS:
-Before designing screens, analyze:
-1. WHO is the primary user? (new user, returning user, admin, etc.)
-2. WHAT is their core job-to-be-done?
-3. WHERE will they use this app? (context of use)
-4. WHEN in their day/workflow will they use it?
-5. WHY would they choose this over alternatives?
-6. HOW technically savvy are they?
+REQUIRED FLOW STRUCTURE:
+Generate exactly 10-12 screens that follow this pattern:
 
-COMPREHENSIVE SCREEN ARCHITECTURE:
-Design the COMPLETE user experience including:
+1. ENTRY (1-2 screens)
+   - Welcome/Splash
+   - Authentication (if needed)
 
-AUTHENTICATION & ONBOARDING FLOW:
-- App Launch/Splash (if needed)
-- Authentication (Login/Register with proper validation)
-- Onboarding (introduce key features, set preferences)
-- Email/Phone Verification (if required)
+2. SETUP (1-2 screens)  
+   - Onboarding/Permissions
+   - Initial configuration
 
-CORE APPLICATION FLOW:
-- Home/Dashboard (overview, quick actions, status)
-- Primary task screens (list, detail, form, search)
-- Navigation screens (tabs, drawer, settings)
+3. CORE VALUE (6-8 screens)
+   - Home/Dashboard
+   - Primary task screens
+   - Detail/Action screens
+   - Confirmation/Success
 
-SUPPORTING SCREENS:
-- Profile & Account Management
-- Settings & Preferences  
-- Help & Support
-- Error States (network, permission, validation)
-- Empty States (no data, first use)
-- Loading States (data fetching, processing)
+4. SUPPORTING (2-3 screens)
+   - Profile/Settings  
+   - Help/Support
 
-ADVANCED FEATURES (when relevant):
-- Notifications & Communication
-- Search & Filter
-- Media handling (camera, gallery)
-- Social features (if applicable)
-- Analytics/Reports (for business apps)
+TRANSITION REQUIREMENTS:
+Every screen transition must be:
+- Triggered by specific user action
+- Motivated by clear user intent  
+- Connected to user's main goal
+- Recoverable (user can go back)
 
-Generate a JSON object with this EXACT structure:
+COMPONENT SPECIFICATION:
+For each screen, specify 4-8 concrete UI components:
+✅ "Search Bar with Voice Input" 
+✅ "Restaurant Cards with Photos and Ratings"
+❌ "Content Area" or "UI Elements" (too vague)
+
+Return ONLY this JSON structure with NO additional text:
+
 {
-  "appName": "string - descriptive, memorable app name",
-  "description": "string - clear value proposition (what problem does this solve?)",
+  "appName": "string - descriptive app name",
+  "description": "string - value proposition in one sentence", 
   "complexity": "simple|moderate|complex",
-  "tags": ["array", "of", "relevant", "domain", "tags"],
-  "primaryUserFlow": "onboarding|task_completion|discovery|authentication|transaction|content_consumption|social_interaction|productivity",
-  "targetAudience": ["primary", "user", "types"],
+  "tags": ["relevant", "domain", "keywords"],
   "screens": [
     {
-      "name": "string - clear, action-oriented screen name",
-      "type": "auth|dashboard|home|list|grid|detail|form|search|filter|profile|settings|preferences|account|chat|notifications|feed|cart|checkout|payment|order_history|gallery|camera|media_viewer|tab_bar|drawer|modal|bottom_sheet|error|loading|empty_state|tutorial|help|onboarding|verification|map|calendar|analytics|reports",
-      "description": "string - what the user accomplishes on this screen (job-to-be-done)",
-      "components": ["array", "of", "specific", "UI", "components"],
-      "requiresAuth": boolean,
-      "userIntent": "string - what the user is trying to accomplish",
-      "cognitiveLoad": "low|medium|high",
-      "navigationPattern": "tab_based|drawer|stack|modal|bottom_sheet|wizard|master_detail|card_stack",
-      "interactions": [
-        {
-          "type": "tap|swipe|drag|long_press|scroll",
-          "target": "string - what element",
-          "result": "string - what happens"
-        }
-      ],
-      "formFields": [{"name": "string", "type": "text|email|password|number|phone|date|select|textarea|checkbox|radio|file", "required": boolean, "validation": "string"}], // only for forms
-      "accessibilityFeatures": ["screen_reader", "keyboard_nav", "focus_management", "color_contrast"],
-      "emptyState": "string - what shows when no data/first time use",
-      "errorHandling": ["validation_errors", "network_errors", "permission_errors"]
+      "name": "exact screen title",
+      "type": "home|auth|onboarding|list|detail|form|profile|settings|cart|checkout|search",
+      "description": "what user accomplishes here",
+      "components": ["Specific UI Component Name", "Another Component", "Clear Button Labels"],
+      "requiresAuth": true/false,
+      "userIntent": "clear goal user has on this screen"
     }
   ],
   "transitions": [
     {
-      "from": "string - source screen name (must match exactly)",
-      "to": "string - target screen name (must match exactly)", 
-      "trigger": "user_action|api_success|api_error|navigation|condition",
-      "description": "string - specific user action or system event",
-      "userMotivation": "string - why would the user take this action?"
+      "from": "exact screen name",
+      "to": "exact screen name", 
+      "trigger": "user_action",
+      "description": "specific action like 'taps Sign In button'"
     }
   ]
 }
 
-CRITICAL REQUIREMENTS:
+CRITICAL: Create complete user journey from app launch to task completion. Every screen must connect logically. Use specific component names, not generic terms.`;
+  }
 
-APP LAUNCH PATTERNS (NO LANDING PAGES):
-1. Start with "App Launch" → Authentication flow OR direct to main app (if no auth)
-2. For apps requiring auth: App Launch → Login/Register choice → Onboarding → Main App
-3. For apps without auth: App Launch → (optional onboarding) → Main App
-4. Always include proper onboarding for new users
-
-COMPLETE USER JOURNEYS:
-1. Map the ENTIRE user journey from app launch to task completion
-2. Include authentication, onboarding, core tasks, and account management
-3. Design for both new and returning users
-4. Include error recovery paths and edge cases
-5. Every screen must be reachable and serve a purpose
-
-MODERN UX PATTERNS:
-1. Use mobile-first navigation (tabs, drawer, stack)
-2. Include empty states for first-time use
-3. Design loading states for data fetching
-4. Plan error states for network/validation issues
-5. Consider accessibility from the start
-6. Use progressive disclosure for complex features
-
-TASK-ORIENTED DESIGN:
-1. Organize screens around user tasks, not technical structure
-2. Minimize steps to complete primary tasks
-3. Group related functionality logically
-4. Provide clear paths forward and back
-5. Design for task interruption and resumption
-
-VALIDATION & CONSISTENCY:
-1. Use exact screen names in transitions (case sensitive)
-2. Ensure every transition has a logical trigger
-3. Verify all screens are connected to the flow
-4. Check that user motivations align with transitions
-5. Maintain consistent interaction patterns
-
-Return ONLY the JSON object, no additional text or explanation.`;
+  /**
+   * Ensure all screens are connected in a logical flow
+   */
+  private static ensureConnectedFlow(screens: Screen[], existingTransitions: Transition[]): Transition[] {
+    const transitions = [...existingTransitions];
+    const connectedScreenIds = new Set<string>();
+    
+    // Track which screens are already connected
+    existingTransitions.forEach(t => {
+      connectedScreenIds.add(t.from);
+      connectedScreenIds.add(t.to);
+    });
+    
+    // Find unconnected screens
+    const unconnectedScreens = screens.filter(s => !connectedScreenIds.has(s.id));
+    
+    // Create basic linear flow for unconnected screens
+    if (unconnectedScreens.length > 0) {
+      // Connect to the first connected screen if available, otherwise create a chain
+      const firstConnectedScreen = screens.find(s => connectedScreenIds.has(s.id));
+      let previousScreenId = firstConnectedScreen?.id || screens[0]?.id;
+      
+      unconnectedScreens.forEach((screen, index) => {
+        if (previousScreenId && previousScreenId !== screen.id) {
+          transitions.push({
+            id: `fallback_transition_${transitions.length}`,
+            from: previousScreenId,
+            to: screen.id,
+            trigger: TransitionTrigger.USER_ACTION,
+            description: `Navigate to ${screen.name}`,
+            condition: undefined
+          });
+        }
+        previousScreenId = screen.id;
+      });
+    }
+    
+    return transitions;
   }
 
   /**
@@ -239,20 +226,32 @@ Return ONLY the JSON object, no additional text or explanation.`;
     // No API endpoints in UX flow phase - focus on user experience only
     const apiEndpoints: ApiEndpoint[] = [];
 
-    // Normalize transitions with enhanced context
-    const transitions: Transition[] = (parsed.transitions || []).map((transition: any, index: number) => {
+    // Normalize transitions with enhanced context and validation
+    let transitions: Transition[] = (parsed.transitions || []).map((transition: any, index: number) => {
       const fromScreen = screens.find(s => s.name === transition.from);
       const toScreen = screens.find(s => s.name === transition.to);
       
+      // Skip invalid transitions
+      if (!fromScreen || !toScreen) {
+        console.warn(`Invalid transition: ${transition.from} -> ${transition.to}`);
+        return null;
+      }
+      
       return {
         id: `transition_${index}`,
-        from: fromScreen?.id || screens[0]?.id || `screen_0`,
-        to: toScreen?.id || screens[1]?.id || `screen_1`,
+        from: fromScreen.id,
+        to: toScreen.id,
         trigger: this.normalizeTransitionTrigger(transition.trigger || 'user_action'),
         description: transition.description || 'User navigates',
         condition: transition.userMotivation
       };
-    });
+    }).filter(Boolean) as Transition[];
+
+    // Ensure minimum connectivity - if we have disconnected screens, create basic flow
+    if (transitions.length < screens.length - 1) {
+      console.log('Adding missing transitions to ensure connectivity');
+      transitions = this.ensureConnectedFlow(screens, transitions);
+    }
 
     return {
       id,
@@ -561,50 +560,108 @@ Return ONLY the JSON object, no additional text or explanation.`;
   }
 
   private static analyzeGoal(goal: string) {
-    // Simple keyword-based analysis - in production, use AI/NLP
     const lowerGoal = goal.toLowerCase();
     
-    const hasAuth = lowerGoal.includes('login') || lowerGoal.includes('auth') || lowerGoal.includes('user');
-    const hasDashboard = lowerGoal.includes('dashboard') || lowerGoal.includes('home');
-    const hasList = lowerGoal.includes('list') || lowerGoal.includes('todo') || lowerGoal.includes('task');
-    const hasProfile = lowerGoal.includes('profile') || lowerGoal.includes('account');
-    const hasSettings = lowerGoal.includes('settings') || lowerGoal.includes('config');
-    
-    // Determine app type and name
+    // Advanced app pattern recognition
+    const appPatterns = {
+      foodDelivery: lowerGoal.includes('food') || lowerGoal.includes('deliver') || lowerGoal.includes('restaurant') || lowerGoal.includes('order') || lowerGoal.includes('meal'),
+      ecommerce: lowerGoal.includes('ecommerce') || lowerGoal.includes('shop') || lowerGoal.includes('buy') || lowerGoal.includes('sell') || lowerGoal.includes('product') || lowerGoal.includes('cart'),
+      social: lowerGoal.includes('social') || lowerGoal.includes('chat') || lowerGoal.includes('message') || lowerGoal.includes('friend') || lowerGoal.includes('post'),
+      productivity: lowerGoal.includes('todo') || lowerGoal.includes('task') || lowerGoal.includes('project') || lowerGoal.includes('manage') || lowerGoal.includes('organize'),
+      fitness: lowerGoal.includes('fitness') || lowerGoal.includes('workout') || lowerGoal.includes('exercise') || lowerGoal.includes('health') || lowerGoal.includes('track'),
+      finance: lowerGoal.includes('bank') || lowerGoal.includes('money') || lowerGoal.includes('payment') || lowerGoal.includes('budget') || lowerGoal.includes('expense'),
+      travel: lowerGoal.includes('travel') || lowerGoal.includes('trip') || lowerGoal.includes('hotel') || lowerGoal.includes('flight') || lowerGoal.includes('booking'),
+      education: lowerGoal.includes('learn') || lowerGoal.includes('course') || lowerGoal.includes('study') || lowerGoal.includes('education') || lowerGoal.includes('quiz'),
+      entertainment: lowerGoal.includes('music') || lowerGoal.includes('video') || lowerGoal.includes('stream') || lowerGoal.includes('game') || lowerGoal.includes('entertainment'),
+      news: lowerGoal.includes('news') || lowerGoal.includes('article') || lowerGoal.includes('blog') || lowerGoal.includes('read') || lowerGoal.includes('content')
+    };
+
+    // Determine primary app type and complexity
+    let appType = 'general';
     let appName = 'My App';
     let tags: string[] = [];
-    
-    if (lowerGoal.includes('todo')) {
-      appName = 'Todo App';
-      tags = ['productivity', 'task-management'];
-    } else if (lowerGoal.includes('social')) {
-      appName = 'Social App';
-      tags = ['social', 'networking'];
-    } else if (lowerGoal.includes('ecommerce') || lowerGoal.includes('shop')) {
+    let complexity = ComplexityLevel.COMPLEX; // Default to complex for better flows
+
+    if (appPatterns.foodDelivery) {
+      appType = 'foodDelivery';
+      appName = 'Food Delivery App';
+      tags = ['food', 'delivery', 'restaurants', 'orders'];
+      complexity = ComplexityLevel.COMPLEX;
+    } else if (appPatterns.ecommerce) {
+      appType = 'ecommerce';
       appName = 'E-commerce App';
-      tags = ['ecommerce', 'shopping'];
-    } else if (lowerGoal.includes('blog')) {
-      appName = 'Blog App';
-      tags = ['content', 'blogging'];
+      tags = ['ecommerce', 'shopping', 'products', 'payments'];
+      complexity = ComplexityLevel.COMPLEX;
+    } else if (appPatterns.social) {
+      appType = 'social';
+      appName = 'Social App';
+      tags = ['social', 'messaging', 'community', 'sharing'];
+      complexity = ComplexityLevel.COMPLEX;
+    } else if (appPatterns.productivity) {
+      appType = 'productivity';
+      appName = 'Productivity App';
+      tags = ['productivity', 'tasks', 'organization', 'workflow'];
+      complexity = ComplexityLevel.MODERATE;
+    } else if (appPatterns.fitness) {
+      appType = 'fitness';
+      appName = 'Fitness App';
+      tags = ['fitness', 'health', 'tracking', 'workouts'];
+      complexity = ComplexityLevel.COMPLEX;
+    } else if (appPatterns.finance) {
+      appType = 'finance';
+      appName = 'Finance App';
+      tags = ['finance', 'banking', 'payments', 'budget'];
+      complexity = ComplexityLevel.COMPLEX;
+    } else if (appPatterns.travel) {
+      appType = 'travel';
+      appName = 'Travel App';
+      tags = ['travel', 'booking', 'trips', 'hotels'];
+      complexity = ComplexityLevel.COMPLEX;
+    } else if (appPatterns.education) {
+      appType = 'education';
+      appName = 'Learning App';
+      tags = ['education', 'learning', 'courses', 'knowledge'];
+      complexity = ComplexityLevel.MODERATE;
+    } else if (appPatterns.entertainment) {
+      appType = 'entertainment';
+      appName = 'Entertainment App';
+      tags = ['entertainment', 'media', 'streaming', 'content'];
+      complexity = ComplexityLevel.COMPLEX;
+    } else if (appPatterns.news) {
+      appType = 'news';
+      appName = 'News App';
+      tags = ['news', 'articles', 'content', 'reading'];
+      complexity = ComplexityLevel.MODERATE;
     }
 
-    // Determine complexity
-    let complexity = ComplexityLevel.SIMPLE;
-    const featureCount = [hasAuth, hasDashboard, hasList, hasProfile, hasSettings].filter(Boolean).length;
-    if (featureCount > 3) complexity = ComplexityLevel.COMPLEX;
-    else if (featureCount > 1) complexity = ComplexityLevel.MODERATE;
+    // Enhanced feature detection
+    const features = {
+      hasAuth: true, // Most modern apps require auth
+      hasOnboarding: true, // Essential for good UX
+      hasDashboard: appType !== 'productivity', // Most apps except simple task apps
+      hasList: true, // Most apps have lists of content
+      hasDetail: true, // Detail views are standard
+      hasForm: true, // Forms for input/creation
+      hasProfile: true, // User profiles are standard
+      hasSettings: true, // Settings are expected
+      hasSearch: appType === 'ecommerce' || appType === 'foodDelivery' || appType === 'news' || appType === 'entertainment',
+      hasCart: appType === 'ecommerce' || appType === 'foodDelivery',
+      hasPayment: appType === 'ecommerce' || appType === 'foodDelivery' || appType === 'travel',
+      hasMap: appType === 'foodDelivery' || appType === 'travel',
+      hasChat: appType === 'social' || appType === 'ecommerce' || appType === 'foodDelivery',
+      hasNotifications: true, // Standard for engagement
+      hasFeed: appType === 'social' || appType === 'news' || appType === 'entertainment',
+      hasBooking: appType === 'travel' || appType === 'fitness',
+      hasTracking: appType === 'fitness' || appType === 'foodDelivery' || appType === 'travel'
+    };
 
     return {
+      appType,
       appName,
       tags,
       complexity,
-      features: {
-        hasAuth,
-        hasDashboard,
-        hasList,
-        hasProfile,
-        hasSettings
-      }
+      features,
+      originalGoal: goal
     };
   }
 
@@ -612,201 +669,432 @@ Return ONLY the JSON object, no additional text or explanation.`;
     const screens: Screen[] = [];
     let screenIndex = 0;
 
-    // App Launch/Splash screen (optional, only if needed for loading/branding)
-    if (analysis.complexity !== ComplexityLevel.SIMPLE) {
-      screens.push({
-        id: `screen_${screenIndex++}`,
-        name: 'App Launch',
+    // Generate screens based on app type with sophisticated flows
+    if (analysis.appType === 'foodDelivery') {
+      return this.generateFoodDeliveryScreens(analysis);
+    } else if (analysis.appType === 'ecommerce') {
+      return this.generateEcommerceScreens(analysis);
+    } else if (analysis.appType === 'social') {
+      return this.generateSocialScreens(analysis);
+    } else if (analysis.appType === 'finance') {
+      return this.generateFinanceScreens(analysis);
+    } else if (analysis.appType === 'travel') {
+      return this.generateTravelScreens(analysis);
+    } else if (analysis.appType === 'fitness') {
+      return this.generateFitnessScreens(analysis);
+    } else {
+      // Enhanced general app screens
+      return this.generateGeneralAppScreens(analysis);
+    }
+  }
+
+  private static generateFoodDeliveryScreens(analysis: any): Screen[] {
+    return [
+      {
+        id: 'screen_0',
+        name: 'Welcome Splash',
         type: ScreenType.LOADING,
-        description: 'App initialization and loading screen',
-        components: ['AppLogo', 'LoadingIndicator', 'VersionInfo'],
+        description: 'App launch screen with branding and location request',
+        components: ['App Logo', 'Location Permission Request', 'Loading Animation'],
         data: { 
           requiresAuth: false,
           userJourney: {
-            userIntent: 'Launch the app',
+            userIntent: 'Launch app and discover food options nearby',
             emotionalState: 'excited',
             cognitiveLoad: 'low',
             contextOfUse: 'mobile',
-            userType: 'returning'
+            userType: 'new'
           }
         }
-      });
-    }
-
-    // Auth screens
-    if (analysis.features.hasAuth) {
-      screens.push({
-        id: `screen_${screenIndex++}`,
-        name: 'Login',
+      },
+      {
+        id: 'screen_1',
+        name: 'Onboarding',
+        type: ScreenType.ONBOARDING,
+        description: 'Introduction to app features: browse restaurants, track orders, save favorites',
+        components: ['Feature Carousel', 'Skip Button', 'Get Started Button', 'Progress Indicators'],
+        data: { 
+          requiresAuth: false,
+          userJourney: {
+            userIntent: 'Understand app value and main features',
+            emotionalState: 'curious',
+            cognitiveLoad: 'medium',
+            contextOfUse: 'mobile',
+            userType: 'new'
+          }
+        }
+      },
+      {
+        id: 'screen_2',
+        name: 'Sign Up',
         type: ScreenType.AUTH,
-        description: 'User authentication screen',
-        components: ['LoginForm', 'SignupLink', 'ForgotPassword'],
+        description: 'User registration with email, phone verification',
+        components: ['Phone Number Input', 'Email Input', 'Terms Checkbox', 'Continue Button', 'Login Link'],
         data: { 
           requiresAuth: false,
           formFields: [
+            { name: 'phone', type: 'tel', required: true },
             { name: 'email', type: 'email', required: true },
-            { name: 'password', type: 'password', required: true }
+            { name: 'firstName', type: 'text', required: true }
           ]
         }
-      });
-
-      screens.push({
-        id: `screen_${screenIndex++}`,
-        name: 'Register',
-        type: ScreenType.AUTH,
-        description: 'User registration screen',
-        components: ['RegisterForm', 'LoginLink'],
+      },
+      {
+        id: 'screen_3',
+        name: 'Phone Verification',
+        type: ScreenType.VERIFICATION,
+        description: 'SMS code verification for account security',
+        components: ['Code Input Fields', 'Resend Code Button', 'Verify Button', 'Edit Phone Link'],
+        data: { requiresAuth: false }
+      },
+      {
+        id: 'screen_4',
+        name: 'Delivery Address',
+        type: ScreenType.FORM,
+        description: 'Set primary delivery address with map integration',
+        components: ['Address Search Bar', 'Map View', 'Current Location Button', 'Address Details Form', 'Save Address Button'],
         data: { 
-          requiresAuth: false,
+          requiresAuth: true,
           formFields: [
-            { name: 'name', type: 'text', required: true },
-            { name: 'email', type: 'email', required: true },
-            { name: 'password', type: 'password', required: true }
+            { name: 'street', type: 'text', required: true },
+            { name: 'apartment', type: 'text', required: false },
+            { name: 'city', type: 'text', required: true },
+            { name: 'instructions', type: 'textarea', required: false }
           ]
         }
-      });
-    }
+      },
+      {
+        id: 'screen_5',
+        name: 'Restaurant Discovery',
+        type: ScreenType.HOME,
+        description: 'Main home screen with restaurant categories, deals, and personalized recommendations',
+        components: ['Search Bar', 'Cuisine Filter Chips', 'Featured Restaurants Carousel', 'Nearby Restaurants List', 'Deals Banner', 'Quick Reorder Section'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_6',
+        name: 'Restaurant Search',
+        type: ScreenType.SEARCH,
+        description: 'Advanced search with filters for cuisine, price, delivery time, ratings',
+        components: ['Search Input', 'Filter Panel', 'Sort Options', 'Restaurant Grid', 'Map Toggle', 'Clear Filters'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_7',
+        name: 'Restaurant Detail',
+        type: ScreenType.DETAIL,
+        description: 'Restaurant page with menu, reviews, delivery info, and photos',
+        components: ['Restaurant Header', 'Photo Gallery', 'Rating & Reviews', 'Menu Categories', 'Menu Items List', 'Add to Cart Buttons', 'Restaurant Info'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_8',
+        name: 'Menu Item Detail',
+        type: ScreenType.DETAIL,
+        description: 'Individual menu item with customization options',
+        components: ['Item Photo', 'Item Description', 'Customization Options', 'Size Selection', 'Add-ons Checkboxes', 'Special Instructions', 'Add to Cart Button'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_9',
+        name: 'Shopping Cart',
+        type: ScreenType.CART,
+        description: 'Review order, modify quantities, apply promo codes',
+        components: ['Cart Items List', 'Quantity Controls', 'Remove Item Buttons', 'Promo Code Input', 'Delivery Fee Breakdown', 'Checkout Button'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_10',
+        name: 'Checkout',
+        type: ScreenType.CHECKOUT,
+        description: 'Delivery details, payment method, and order confirmation',
+        components: ['Delivery Address Card', 'Delivery Time Selector', 'Payment Methods', 'Tip Calculator', 'Order Summary', 'Place Order Button'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_11',
+        name: 'Order Confirmation',
+        type: ScreenType.DETAIL,
+        description: 'Order success with estimated delivery time and tracking info',
+        components: ['Success Animation', 'Order Number', 'Estimated Time', 'Restaurant Info', 'Track Order Button', 'Order Again Button'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_12',
+        name: 'Order Tracking',
+        type: ScreenType.MAP,
+        description: 'Real-time order tracking with map and status updates',
+        components: ['Live Map', 'Delivery Progress Steps', 'Driver Info Card', 'Estimated Arrival', 'Call Driver Button', 'Order Details'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_13',
+        name: 'Order History',
+        type: ScreenType.LIST,
+        description: 'Past orders with reorder and review options',
+        components: ['Order History List', 'Order Status Badges', 'Reorder Buttons', 'Rate Order', 'Search Orders', 'Filter by Date'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_14',
+        name: 'User Profile',
+        type: ScreenType.PROFILE,
+        description: 'Account management, saved addresses, payment methods',
+        components: ['Profile Photo', 'Personal Info Form', 'Saved Addresses List', 'Payment Methods', 'Preferences Settings', 'Logout Button'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_15',
+        name: 'Favorites',
+        type: ScreenType.LIST,
+        description: 'Saved restaurants and frequently ordered items',
+        components: ['Favorite Restaurants', 'Favorite Items', 'Quick Reorder Options', 'Remove from Favorites', 'Share Favorites'],
+        data: { requiresAuth: true }
+      }
+    ];
+  }
 
-    // Onboarding (essential for good UX)
+  private static generateEcommerceScreens(analysis: any): Screen[] {
+    return [
+      {
+        id: 'screen_0',
+        name: 'Welcome',
+        type: ScreenType.ONBOARDING,
+        description: 'App introduction and feature highlights',
+        components: ['Welcome Message', 'Feature Showcase', 'Get Started Button'],
+        data: { requiresAuth: false }
+      },
+      {
+        id: 'screen_1',
+        name: 'Product Discovery',
+        type: ScreenType.HOME,
+        description: 'Main shopping interface with categories, deals, and recommendations',
+        components: ['Search Bar', 'Category Grid', 'Featured Products', 'Daily Deals', 'Recommended for You'],
+        data: { requiresAuth: false }
+      },
+      {
+        id: 'screen_2',
+        name: 'Product Search',
+        type: ScreenType.SEARCH,
+        description: 'Product search with advanced filtering',
+        components: ['Search Input', 'Filter Panel', 'Sort Options', 'Product Grid', 'Search Suggestions'],
+        data: { requiresAuth: false }
+      },
+      {
+        id: 'screen_3',
+        name: 'Product Details',
+        type: ScreenType.DETAIL,
+        description: 'Individual product page with photos, reviews, and purchase options',
+        components: ['Product Image Gallery', 'Product Info', 'Size/Color Selection', 'Add to Cart', 'Reviews Section', 'Related Products'],
+        data: { requiresAuth: false }
+      },
+      {
+        id: 'screen_4',
+        name: 'Shopping Cart',
+        type: ScreenType.CART,
+        description: 'Review cart items and proceed to checkout',
+        components: ['Cart Items', 'Quantity Controls', 'Remove Items', 'Subtotal', 'Checkout Button'],
+        data: { requiresAuth: false }
+      },
+      {
+        id: 'screen_5',
+        name: 'User Registration',
+        type: ScreenType.AUTH,
+        description: 'Account creation for checkout and order tracking',
+        components: ['Registration Form', 'Social Login Options', 'Guest Checkout Option'],
+        data: { requiresAuth: false }
+      },
+      {
+        id: 'screen_6',
+        name: 'Checkout',
+        type: ScreenType.CHECKOUT,
+        description: 'Shipping and payment information',
+        components: ['Shipping Address', 'Payment Methods', 'Order Summary', 'Place Order'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_7',
+        name: 'Order Confirmation',
+        type: ScreenType.DETAIL,
+        description: 'Order success and tracking information',
+        components: ['Order Success', 'Order Details', 'Tracking Info', 'Continue Shopping'],
+        data: { requiresAuth: true }
+      }
+    ];
+  }
+
+  private static generateSocialScreens(analysis: any): Screen[] {
+    return [
+      {
+        id: 'screen_0',
+        name: 'Welcome',
+        type: ScreenType.ONBOARDING,
+        description: 'App introduction and sign-up encouragement',
+        components: ['Welcome Animation', 'App Features', 'Sign Up Button', 'Login Link'],
+        data: { requiresAuth: false }
+      },
+      {
+        id: 'screen_1',
+        name: 'Sign Up',
+        type: ScreenType.AUTH,
+        description: 'New user registration',
+        components: ['Profile Photo Upload', 'Username Input', 'Bio Input', 'Social Links'],
+        data: { requiresAuth: false }
+      },
+      {
+        id: 'screen_2',
+        name: 'Friend Discovery',
+        type: ScreenType.LIST,
+        description: 'Find and connect with friends',
+        components: ['Search Users', 'Suggested Friends', 'Contact Import', 'Follow Buttons'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_3',
+        name: 'News Feed',
+        type: ScreenType.FEED,
+        description: 'Main social feed with posts from connections',
+        components: ['Create Post Button', 'Story Carousel', 'Feed Posts', 'Like/Comment Actions', 'Share Options'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_4',
+        name: 'Create Post',
+        type: ScreenType.FORM,
+        description: 'Create and share new content',
+        components: ['Text Input', 'Photo/Video Upload', 'Location Tag', 'Audience Selector', 'Post Button'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_5',
+        name: 'Messages',
+        type: ScreenType.CHAT,
+        description: 'Direct messaging interface',
+        components: ['Chat List', 'New Message Button', 'Search Conversations', 'Unread Indicators'],
+        data: { requiresAuth: true }
+      },
+      {
+        id: 'screen_6',
+        name: 'User Profile',
+        type: ScreenType.PROFILE,
+        description: 'User profile with posts and information',
+        components: ['Profile Header', 'Post Grid', 'Bio Section', 'Follow/Unfollow Button', 'Message Button'],
+        data: { requiresAuth: true }
+      }
+    ];
+  }
+
+  private static generateGeneralAppScreens(analysis: any): Screen[] {
+    const screens: Screen[] = [];
+    let screenIndex = 0;
+
+    // Enhanced general flow with more screens
     screens.push({
       id: `screen_${screenIndex++}`,
       name: 'Welcome',
       type: ScreenType.ONBOARDING,
-      description: 'Introduction to app features and setup user preferences',
-      components: ['WelcomeMessage', 'FeatureHighlights', 'GetStartedButton', 'SkipButton'],
-      data: { 
-        requiresAuth: false,
-        userJourney: {
-          userIntent: 'Learn about the app and get started',
-          emotionalState: 'excited',
-          cognitiveLoad: 'low',
-          contextOfUse: 'mobile',
-          userType: 'new'
-        }
-      }
+      description: 'App introduction and feature overview',
+      components: ['Welcome Message', 'Feature Highlights', 'Get Started Button'],
+      data: { requiresAuth: false }
     });
 
-    // Dashboard
+    if (analysis.features.hasAuth) {
+      screens.push({
+        id: `screen_${screenIndex++}`,
+        name: 'Sign Up',
+        type: ScreenType.AUTH,
+        description: 'User registration',
+        components: ['Registration Form', 'Terms Agreement', 'Create Account Button'],
+        data: { requiresAuth: false }
+      });
+
+      screens.push({
+        id: `screen_${screenIndex++}`,
+        name: 'Login',
+        type: ScreenType.AUTH,
+        description: 'User authentication',
+        components: ['Login Form', 'Forgot Password Link', 'Sign Up Link'],
+        data: { requiresAuth: false }
+      });
+    }
+
     if (analysis.features.hasDashboard) {
       screens.push({
         id: `screen_${screenIndex++}`,
         name: 'Dashboard',
         type: ScreenType.DASHBOARD,
-        description: 'Main dashboard with overview and key metrics',
-        components: ['StatsCards', 'RecentActivity', 'QuickActions'],
+        description: 'Main app dashboard with overview and quick actions',
+        components: ['Stats Overview', 'Quick Actions', 'Recent Activity', 'Navigation Menu'],
         data: { requiresAuth: analysis.features.hasAuth }
       });
     }
 
-    // List screens
-    if (analysis.features.hasList) {
-      screens.push({
-        id: `screen_${screenIndex++}`,
-        name: 'Items List',
-        type: ScreenType.LIST,
-        description: 'List of items with search and filter capabilities',
-        components: ['SearchBar', 'FilterControls', 'ItemList', 'Pagination'],
-        data: { 
-          requiresAuth: analysis.features.hasAuth,
-          listItems: {
-            itemType: 'item',
-            displayFields: ['title', 'status', 'createdAt'],
-            actions: ['view', 'edit', 'delete']
-          }
-        }
-      });
+    screens.push({
+      id: `screen_${screenIndex++}`,
+      name: 'Main List',
+      type: ScreenType.LIST,
+      description: 'Primary content listing with search and filters',
+      components: ['Search Bar', 'Filter Options', 'Content List', 'Add New Button'],
+      data: { requiresAuth: analysis.features.hasAuth }
+    });
 
-      screens.push({
-        id: `screen_${screenIndex++}`,
-        name: 'Item Detail',
-        type: ScreenType.DETAIL,
-        description: 'Detailed view of a single item',
-        components: ['ItemHeader', 'ItemContent', 'ActionButtons'],
-        data: { requiresAuth: analysis.features.hasAuth }
-      });
+    screens.push({
+      id: `screen_${screenIndex++}`,
+      name: 'Item Details',
+      type: ScreenType.DETAIL,
+      description: 'Detailed view of individual items',
+      components: ['Item Header', 'Content Details', 'Action Buttons', 'Related Items'],
+      data: { requiresAuth: analysis.features.hasAuth }
+    });
 
-      screens.push({
-        id: `screen_${screenIndex++}`,
-        name: 'Add Item',
-        type: ScreenType.FORM,
-        description: 'Form to create a new item',
-        components: ['ItemForm', 'SubmitButton', 'CancelButton'],
-        data: { 
-          requiresAuth: analysis.features.hasAuth,
-          formFields: [
-            { name: 'title', type: 'text', required: true },
-            { name: 'description', type: 'textarea', required: false },
-            { name: 'priority', type: 'select', required: false }
-          ]
-        }
-      });
-    }
+    screens.push({
+      id: `screen_${screenIndex++}`,
+      name: 'Create/Edit',
+      type: ScreenType.FORM,
+      description: 'Form for creating or editing content',
+      components: ['Input Form', 'Save Button', 'Cancel Button', 'Form Validation'],
+      data: { requiresAuth: analysis.features.hasAuth }
+    });
 
-    // Profile
     if (analysis.features.hasProfile) {
       screens.push({
         id: `screen_${screenIndex++}`,
         name: 'Profile',
         type: ScreenType.PROFILE,
-        description: 'User profile with personal information',
-        components: ['ProfileHeader', 'ProfileForm', 'AvatarUpload'],
+        description: 'User profile management',
+        components: ['Profile Info', 'Edit Profile', 'Account Settings', 'Activity History'],
         data: { requiresAuth: true }
       });
     }
 
-    // Settings
     if (analysis.features.hasSettings) {
       screens.push({
         id: `screen_${screenIndex++}`,
         name: 'Settings',
         type: ScreenType.SETTINGS,
         description: 'App settings and preferences',
-        components: ['SettingsForm', 'ThemeToggle', 'NotificationSettings'],
+        components: ['General Settings', 'Privacy Settings', 'Notification Preferences', 'Account Management'],
         data: { requiresAuth: analysis.features.hasAuth }
       });
     }
 
-    // Error handling screens (essential for good UX)
-    screens.push({
-      id: `screen_${screenIndex++}`,
-      name: 'Network Error',
-      type: ScreenType.ERROR,
-      description: 'Handle network connectivity issues',
-      components: ['ErrorMessage', 'RetryButton', 'OfflineBanner'],
-      data: { 
-        requiresAuth: false,
-        userJourney: {
-          userIntent: 'Understand what went wrong and how to fix it',
-          emotionalState: 'frustrated',
-          cognitiveLoad: 'low',
-          contextOfUse: 'mobile',
-          userType: 'returning'
-        }
-      }
-    });
-
-    // Empty state screen (for better first-time experience)
-    if (analysis.features.hasList) {
-      screens.push({
-        id: `screen_${screenIndex++}`,
-        name: 'Empty List',
-        type: ScreenType.EMPTY_STATE,
-        description: 'First-time user experience when no data exists',
-        components: ['EmptyStateIllustration', 'WelcomeMessage', 'CreateFirstItemButton'],
-        data: { 
-          requiresAuth: analysis.features.hasAuth,
-          userJourney: {
-            userIntent: 'Understand how to get started with the app',
-            emotionalState: 'confused',
-            cognitiveLoad: 'low',
-            contextOfUse: 'mobile',
-            userType: 'new'
-          }
-        }
-      });
-    }
-
     return screens;
+  }
+
+  // Additional specialized screen generators would go here for other app types
+  private static generateFinanceScreens(analysis: any): Screen[] {
+    // Implementation for finance app screens
+    return this.generateGeneralAppScreens(analysis);
+  }
+
+  private static generateTravelScreens(analysis: any): Screen[] {
+    // Implementation for travel app screens  
+    return this.generateGeneralAppScreens(analysis);
+  }
+
+  private static generateFitnessScreens(analysis: any): Screen[] {
+    // Implementation for fitness app screens
+    return this.generateGeneralAppScreens(analysis);
   }
 
   // API endpoints removed - focusing only on UX flow in this phase
@@ -815,131 +1103,111 @@ Return ONLY the JSON object, no additional text or explanation.`;
     const transitions: Transition[] = [];
     let transitionIndex = 0;
 
-    // Find key screens for modern app flow
-    const launchScreen = screens.find(s => s.type === ScreenType.LOADING);
-    const authScreens = screens.filter(s => s.type === ScreenType.AUTH);
-    const loginScreen = screens.find(s => s.name.toLowerCase().includes('login'));
-    const registerScreen = screens.find(s => s.name.toLowerCase().includes('register') || s.name.toLowerCase().includes('signup'));
-    const onboardingScreen = screens.find(s => s.type === ScreenType.ONBOARDING);
-    const dashboardScreen = screens.find(s => s.type === ScreenType.DASHBOARD || s.type === ScreenType.HOME);
-    const listScreen = screens.find(s => s.type === ScreenType.LIST || s.type === ScreenType.GRID);
-    const detailScreen = screens.find(s => s.type === ScreenType.DETAIL);
-    const formScreen = screens.find(s => s.type === ScreenType.FORM);
-    const profileScreen = screens.find(s => s.type === ScreenType.PROFILE);
-
-    // Create complete user journey transitions for modern app flow
-    
-    // Launch to auth flows (if auth is required)
-    if (launchScreen && authScreens.length > 0) {
-      authScreens.forEach(authScreen => {
-        transitions.push({
-          id: `transition_${transitionIndex++}`,
-          from: launchScreen.id,
-          to: authScreen.id,
-          trigger: TransitionTrigger.USER_ACTION,
-          description: authScreen.name.toLowerCase().includes('login') ? 'User chooses login' : 'User chooses sign up'
-        });
-      });
+    // Generate sophisticated transitions based on app type
+    if (analysis.appType === 'foodDelivery') {
+      return this.generateFoodDeliveryTransitions(screens);
+    } else if (analysis.appType === 'ecommerce') {
+      return this.generateEcommerceTransitions(screens);
+    } else if (analysis.appType === 'social') {
+      return this.generateSocialTransitions(screens);
+    } else {
+      return this.generateGeneralTransitions(screens, analysis);
     }
-    
-    // Launch to onboarding (if no auth required)
-    if (launchScreen && onboardingScreen && authScreens.length === 0) {
+  }
+
+  private static generateFoodDeliveryTransitions(screens: Screen[]): Transition[] {
+    // Create logical flow for food delivery app
+    return [
+      // Launch Flow
+      { id: 'transition_0', from: 'screen_0', to: 'screen_1', trigger: TransitionTrigger.USER_ACTION, description: 'App loads, show onboarding' },
+      { id: 'transition_1', from: 'screen_1', to: 'screen_2', trigger: TransitionTrigger.USER_ACTION, description: 'User wants to sign up' },
+      { id: 'transition_2', from: 'screen_2', to: 'screen_3', trigger: TransitionTrigger.USER_ACTION, description: 'User submits phone number' },
+      { id: 'transition_3', from: 'screen_3', to: 'screen_4', trigger: TransitionTrigger.USER_ACTION, description: 'User verifies phone' },
+      { id: 'transition_4', from: 'screen_4', to: 'screen_5', trigger: TransitionTrigger.USER_ACTION, description: 'User sets delivery address' },
+      
+      // Core App Flow
+      { id: 'transition_5', from: 'screen_5', to: 'screen_6', trigger: TransitionTrigger.USER_ACTION, description: 'User searches restaurants' },
+      { id: 'transition_6', from: 'screen_5', to: 'screen_7', trigger: TransitionTrigger.USER_ACTION, description: 'User selects restaurant' },
+      { id: 'transition_7', from: 'screen_6', to: 'screen_7', trigger: TransitionTrigger.USER_ACTION, description: 'User selects restaurant from search' },
+      { id: 'transition_8', from: 'screen_7', to: 'screen_8', trigger: TransitionTrigger.USER_ACTION, description: 'User views menu item' },
+      { id: 'transition_9', from: 'screen_8', to: 'screen_9', trigger: TransitionTrigger.USER_ACTION, description: 'User adds item to cart' },
+      
+      // Checkout Flow
+      { id: 'transition_10', from: 'screen_9', to: 'screen_10', trigger: TransitionTrigger.USER_ACTION, description: 'User proceeds to checkout' },
+      { id: 'transition_11', from: 'screen_10', to: 'screen_11', trigger: TransitionTrigger.USER_ACTION, description: 'User places order' },
+      { id: 'transition_12', from: 'screen_11', to: 'screen_12', trigger: TransitionTrigger.USER_ACTION, description: 'User tracks order' },
+      
+      // Secondary Flows
+      { id: 'transition_13', from: 'screen_5', to: 'screen_13', trigger: TransitionTrigger.USER_ACTION, description: 'User views order history' },
+      { id: 'transition_14', from: 'screen_5', to: 'screen_14', trigger: TransitionTrigger.USER_ACTION, description: 'User accesses profile' },
+      { id: 'transition_15', from: 'screen_5', to: 'screen_15', trigger: TransitionTrigger.USER_ACTION, description: 'User views favorites' },
+      
+      // Reorder Flow
+      { id: 'transition_16', from: 'screen_13', to: 'screen_9', trigger: TransitionTrigger.USER_ACTION, description: 'User reorders from history' },
+      { id: 'transition_17', from: 'screen_15', to: 'screen_7', trigger: TransitionTrigger.USER_ACTION, description: 'User selects favorite restaurant' }
+    ];
+  }
+
+  private static generateEcommerceTransitions(screens: Screen[]): Transition[] {
+    return [
+      // Discovery Flow
+      { id: 'transition_0', from: 'screen_0', to: 'screen_1', trigger: TransitionTrigger.USER_ACTION, description: 'User starts shopping' },
+      { id: 'transition_1', from: 'screen_1', to: 'screen_2', trigger: TransitionTrigger.USER_ACTION, description: 'User searches products' },
+      { id: 'transition_2', from: 'screen_1', to: 'screen_3', trigger: TransitionTrigger.USER_ACTION, description: 'User views product' },
+      { id: 'transition_3', from: 'screen_2', to: 'screen_3', trigger: TransitionTrigger.USER_ACTION, description: 'User selects product from search' },
+      
+      // Purchase Flow
+      { id: 'transition_4', from: 'screen_3', to: 'screen_4', trigger: TransitionTrigger.USER_ACTION, description: 'User adds to cart' },
+      { id: 'transition_5', from: 'screen_4', to: 'screen_5', trigger: TransitionTrigger.USER_ACTION, description: 'User needs account for checkout' },
+      { id: 'transition_6', from: 'screen_5', to: 'screen_6', trigger: TransitionTrigger.USER_ACTION, description: 'User proceeds to checkout' },
+      { id: 'transition_7', from: 'screen_6', to: 'screen_7', trigger: TransitionTrigger.USER_ACTION, description: 'User completes purchase' }
+    ];
+  }
+
+  private static generateSocialTransitions(screens: Screen[]): Transition[] {
+    return [
+      // Onboarding Flow
+      { id: 'transition_0', from: 'screen_0', to: 'screen_1', trigger: TransitionTrigger.USER_ACTION, description: 'User signs up' },
+      { id: 'transition_1', from: 'screen_1', to: 'screen_2', trigger: TransitionTrigger.USER_ACTION, description: 'User discovers friends' },
+      { id: 'transition_2', from: 'screen_2', to: 'screen_3', trigger: TransitionTrigger.USER_ACTION, description: 'User enters main feed' },
+      
+      // Core Social Flows
+      { id: 'transition_3', from: 'screen_3', to: 'screen_4', trigger: TransitionTrigger.USER_ACTION, description: 'User creates post' },
+      { id: 'transition_4', from: 'screen_3', to: 'screen_5', trigger: TransitionTrigger.USER_ACTION, description: 'User opens messages' },
+      { id: 'transition_5', from: 'screen_3', to: 'screen_6', trigger: TransitionTrigger.USER_ACTION, description: 'User views profile' }
+    ];
+  }
+
+  private static generateGeneralTransitions(screens: Screen[], analysis: any): Transition[] {
+    const transitions: Transition[] = [];
+    let transitionIndex = 0;
+
+    // Create linear flow through screens
+    for (let i = 0; i < screens.length - 1; i++) {
       transitions.push({
         id: `transition_${transitionIndex++}`,
-        from: launchScreen.id,
-        to: onboardingScreen.id,
+        from: screens[i].id,
+        to: screens[i + 1].id,
         trigger: TransitionTrigger.USER_ACTION,
-        description: 'App launches and starts onboarding'
+        description: `Navigate from ${screens[i].name} to ${screens[i + 1].name}`
       });
     }
 
-    // Auth to onboarding flows (if onboarding exists)
-    if (onboardingScreen) {
-      authScreens.forEach(authScreen => {
+    // Add some strategic back-connections
+    if (screens.length > 3) {
+      // Connect detail back to list
+      const listScreen = screens.find(s => s.type === ScreenType.LIST);
+      const detailScreen = screens.find(s => s.type === ScreenType.DETAIL);
+      if (listScreen && detailScreen) {
         transitions.push({
           id: `transition_${transitionIndex++}`,
-          from: authScreen.id,
-          to: onboardingScreen.id,
-          trigger: TransitionTrigger.USER_ACTION,
-          description: 'User completes authentication and starts onboarding'
-        });
-      });
-    }
-
-    // Onboarding to dashboard
-    if (onboardingScreen && dashboardScreen) {
-      transitions.push({
-        id: `transition_${transitionIndex++}`,
-        from: onboardingScreen.id,
-        to: dashboardScreen.id,
-        trigger: TransitionTrigger.USER_ACTION,
-        description: 'User completes onboarding'
-      });
-    }
-
-    // Auth to dashboard flows (direct, if no onboarding)
-    if (dashboardScreen && !onboardingScreen) {
-      authScreens.forEach(authScreen => {
-        transitions.push({
-          id: `transition_${transitionIndex++}`,
-          from: authScreen.id,
-          to: dashboardScreen.id,
-          trigger: TransitionTrigger.USER_ACTION,
-          description: 'User completes authentication'
-        });
-      });
-    }
-
-    // Dashboard to main features
-    if (dashboardScreen) {
-      if (listScreen) {
-        transitions.push({
-          id: `transition_${transitionIndex++}`,
-          from: dashboardScreen.id,
+          from: detailScreen.id,
           to: listScreen.id,
           trigger: TransitionTrigger.USER_ACTION,
-          description: 'User navigates to items list'
-        });
-      }
-      
-      if (profileScreen) {
-        transitions.push({
-          id: `transition_${transitionIndex++}`,
-          from: dashboardScreen.id,
-          to: profileScreen.id,
-          trigger: TransitionTrigger.USER_ACTION,
-          description: 'User navigates to profile'
+          description: 'Return to list'
         });
       }
     }
-
-    // Essential CRUD flow - focus on forward actions only
-    if (listScreen) {
-      // List to detail (view action)
-      if (detailScreen) {
-        transitions.push({
-          id: `transition_${transitionIndex++}`,
-          from: listScreen.id,
-          to: detailScreen.id,
-          trigger: TransitionTrigger.USER_ACTION,
-          description: 'User clicks on list item'
-        });
-      }
-      
-      // List to form (add new action)
-      if (formScreen) {
-        transitions.push({
-          id: `transition_${transitionIndex++}`,
-          from: listScreen.id,
-          to: formScreen.id,
-          trigger: TransitionTrigger.USER_ACTION,
-          description: 'User clicks add new item'
-        });
-      }
-    }
-
-    // Skip return arrows - they create visual clutter and are implied
-    // Users understand they can navigate back via UI controls
 
     return transitions;
   }

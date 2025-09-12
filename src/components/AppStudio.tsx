@@ -24,11 +24,16 @@ import {
   RotateCcw,
   Settings,
   Home,
-  FolderOpen
+  FolderOpen,
+  GitBranch,
+  ArrowRight
 } from 'lucide-react';
 
 import FlowDiagram from './flow/FlowDiagram';
 import ThinkingDialogue from './ui/thinking-dialogue';
+import QuestionsDialog from './ui/questions-dialog';
+import ToolsHome from './ToolsHome';
+import WireframeStudio from './WireframeStudio';
 import { AIFlowGenerator } from '@/lib/ai-flow-generator';
 import { AppArchitecture, AppFlow } from '@/types/app-architecture';
 
@@ -47,7 +52,26 @@ interface ChatMessage {
   currentThought?: string;
 }
 
+type ActiveTool = 'home' | 'flow-diagrams' | 'wireframer' | 'ui-designer' | 'ux-researcher' | 'component-builder';
+
+interface QuestionData {
+  id: string;
+  category: string;
+  question: string;
+  options: string[];
+  why: string;
+  required: boolean;
+}
+
+interface ProjectContext {
+  initialPrompt: string;
+  questions?: QuestionData[];
+  answers?: Record<string, string>;
+  isQuestioningComplete?: boolean;
+}
+
 export default function AppStudio() {
+  const [activeTool, setActiveTool] = useState<ActiveTool>('home');
   const [goal, setGoal] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [architecture, setArchitecture] = useState<AppArchitecture | null>(null);
@@ -57,6 +81,8 @@ export default function AppStudio() {
   const [isProjectMode, setIsProjectMode] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(400);
   const [isDiagramFullscreen, setIsDiagramFullscreen] = useState(false);
+  const [projectContext, setProjectContext] = useState<ProjectContext>({ initialPrompt: '' });
+  const [showQuestions, setShowQuestions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const resizingRef = useRef(false);
 
@@ -67,6 +93,56 @@ export default function AppStudio() {
   useEffect(() => {
     scrollToBottom();
   }, [chatMessages]);
+
+  const handleInitialPrompt = useCallback(async (prompt: string) => {
+    if (!prompt.trim()) return;
+    
+    setProjectContext({ initialPrompt: prompt });
+    
+    // Generate contextual questions first
+    try {
+      const response = await fetch('/api/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userPrompt: prompt }),
+      });
+      
+      if (response.ok) {
+        const { questions } = await response.json();
+        setProjectContext(prev => ({ ...prev, questions }));
+        setShowQuestions(true);
+        setIsProjectMode(true);
+      } else {
+        // Fallback to direct generation if questions fail
+        await handleGenerate(prompt);
+      }
+    } catch (error) {
+      console.error('Failed to generate questions:', error);
+      await handleGenerate(prompt);
+    }
+  }, []);
+
+  const handleAnswerSubmit = useCallback(async (answers: Record<string, string>) => {
+    setProjectContext(prev => ({ ...prev, answers, isQuestioningComplete: true }));
+    setShowQuestions(false);
+    
+    // Generate architecture with context
+    const contextualPrompt = buildContextualPrompt(projectContext.initialPrompt, answers);
+    await handleGenerate(contextualPrompt);
+  }, [projectContext.initialPrompt]);
+
+  const handleSkipQuestions = useCallback(async () => {
+    setShowQuestions(false);
+    await handleGenerate(projectContext.initialPrompt);
+  }, [projectContext.initialPrompt]);
+
+  const buildContextualPrompt = (initialPrompt: string, answers: Record<string, string>): string => {
+    let contextualPrompt = initialPrompt + '\n\nAdditional Context:\n';
+    Object.entries(answers).forEach(([questionId, answer]) => {
+      contextualPrompt += `- ${questionId}: ${answer}\n`;
+    });
+    return contextualPrompt;
+  };
 
   const handleGenerate = useCallback(async (prompt: string) => {
     if (!prompt.trim()) return;
@@ -398,6 +474,28 @@ export default function AppStudio() {
     }
   }, [handleSendMessage]);
 
+  const handleToolSelect = useCallback((toolId: string) => {
+    setActiveTool(toolId as ActiveTool);
+    // Reset state when switching tools
+    if (toolId === 'flow-diagrams') {
+      setIsProjectMode(false);
+      setArchitecture(null);
+      setFlow(null);
+      setChatMessages([]);
+      setCurrentMessage('');
+    }
+  }, []);
+
+  const handleBackToHome = useCallback(() => {
+    setActiveTool('home');
+  }, []);
+
+  const handleFlowToWireframes = useCallback(() => {
+    if (architecture) {
+      setActiveTool('wireframer');
+    }
+  }, [architecture]);
+
   const handleStartOver = useCallback(() => {
     setIsProjectMode(false);
     setArchitecture(null);
@@ -444,6 +542,38 @@ export default function AppStudio() {
     linkElement.click();
   }, [architecture]);
 
+  // Route to different tools
+  if (activeTool === 'home') {
+    return <ToolsHome onToolSelect={handleToolSelect} />;
+  }
+
+  if (activeTool === 'wireframer') {
+    return (
+      <WireframeStudio 
+        sourceArchitecture={architecture}
+        onBack={handleBackToHome}
+      />
+    );
+  }
+
+  // Handle other tools (coming soon)
+  if (['ui-designer', 'ux-researcher', 'component-builder'].includes(activeTool)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="p-4 bg-white rounded-lg border border-gray-200">
+            <Sparkles className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+            <h2 className="text-lg font-semibold text-gray-900 capitalize">{activeTool.replace('-', ' ')}</h2>
+            <p className="text-gray-600">Coming soon...</p>
+          </div>
+          <Button onClick={handleBackToHome} variant="outline">
+            ← Back to Tools
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const exampleGoals = [
     "Todo app with authentication",
     "Social media with user profiles", 
@@ -451,23 +581,30 @@ export default function AppStudio() {
     "Blog with content management"
   ];
 
-  // Landing page when not in project mode
+  // Flow Diagrams Tool - Landing page when not in project mode
   if (!isProjectMode) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-16 space-y-8 sm:space-y-12">
           {/* Header */}
           <div className="text-center space-y-4 sm:space-y-6">
+            <Button
+              variant="ghost"
+              onClick={handleBackToHome}
+              className="mb-4 self-start"
+            >
+              ← Back to Tools
+            </Button>
             <div className="flex items-center justify-center gap-3">
-              <div className="p-2 bg-black rounded-lg text-white">
-                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="p-2 bg-green-600 rounded-lg text-white">
+                <GitBranch className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">
-                AI App Studio
+                User Flow Diagrams
               </h1>
             </div>
             <p className="text-base sm:text-lg text-gray-600 max-w-xl mx-auto leading-relaxed px-4">
-              Transform your app idea into a structured architecture with visual flow diagrams. then wireframes. then code. in one place
+              Transform your app idea into structured user flows with AI-powered architecture generation
             </p>
           </div>
 
@@ -489,7 +626,7 @@ export default function AppStudio() {
                 }}
               />
               <Button
-                onClick={() => handleGenerate(goal)}
+                onClick={() => handleInitialPrompt(goal)}
                 disabled={!goal.trim() || isGenerating}
                 size="sm"
                 className="absolute bottom-4 right-4 h-8 w-8 p-0 bg-black hover:bg-gray-800 rounded-md"
@@ -524,11 +661,11 @@ export default function AppStudio() {
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-1.5 bg-black rounded-md text-white">
-                    <Sparkles className="w-4 h-4" />
+                  <div className="p-1.5 bg-green-600 rounded-md text-white">
+                    <GitBranch className="w-4 h-4" />
                   </div>
                   <div>
-                    <h1 className="text-sm font-medium text-gray-900">AI App Studio</h1>
+                    <h1 className="text-sm font-medium text-gray-900">User Flow Diagrams</h1>
                     {architecture && (
                       <p className="text-xs text-gray-500 truncate">{architecture.name}</p>
                     )}
@@ -587,6 +724,28 @@ export default function AppStudio() {
               ))}
               <div ref={messagesEndRef} />
             </div>
+
+            {/* Pipeline Actions */}
+            {architecture && flow && (
+              <div className="p-4 border-t border-gray-100 bg-blue-50/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                    <ArrowRight className="w-4 h-4" />
+                    <span>Ready for next step</span>
+                  </div>
+                  <Button
+                    onClick={handleFlowToWireframes}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Push to Wireframes →
+                  </Button>
+                </div>
+                <p className="text-xs text-blue-600 mt-1">
+                  Generate wireframes from your flow diagram
+                </p>
+              </div>
+            )}
 
             {/* Chat Input */}
             <div className="p-4 border-t border-gray-200">
@@ -679,6 +838,14 @@ export default function AppStudio() {
           )}
         </div>
       </div>
+
+      {/* Questions Dialog */}
+      <QuestionsDialog 
+        questions={projectContext.questions || []}
+        onSubmit={handleAnswerSubmit}
+        onSkip={handleSkipQuestions}
+        isVisible={showQuestions}
+      />
     </div>
   );
 }
